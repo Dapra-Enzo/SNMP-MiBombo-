@@ -1,0 +1,26 @@
+ROGANISATION DE NOS IDEE
+
+si on a le choix de snmp , si on peut prendre celui de l'iut si on a acces aux cles pour le snmp de liut
+  analyse de trames si possible des trames en direct et des trames existante 
+  justificatif python pouchou ?
+  quelles base de données ? ce qui ce fait en vrai ? 
+quelle interface graphique utiliser pour notre logiciel ? pas de tkinter
+demarage appli : logo apres commencer apres choix entre v2c et v3 apres choix des trames apres chiffrement
+comment on va structure l'api ? 
+  quelles securite ? 
+  ids ? pour anoomlaie d'activite ? 
+  repartition du travail ? 
+  organisation reunion ? montré avancement ? definir nos roles a l'oral ? 
+  gestion de projet ? github project ? partager le repos aux professeur ? 
+ajouter des parametre tel que la recherche ? les filtres ? les clés chiffés ?? choix de l'interface reseau (style eth enps0....) 
+  logs ? pour les erreurs ? pour la connection ? garder  (peut etre sur la bdd ?) test unitaire fonctionel avec un ok si sa marche ou fail
+
+  librable : document pro ? document user ? 
+
+  test unitaire ? 
+
+  FAIRE ATTENTION AUX VOCABULAIRE, FAUTES D'ORTHOGRAPHES, REUNION TOUT LES 15 Jours ? 
+  certification code proprietaire
+  
+documentation en anglais 
+compte rendus de reunion
