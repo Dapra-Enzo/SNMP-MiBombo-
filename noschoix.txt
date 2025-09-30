@@ -1,3 +1,0 @@
-nous avons choisis renavisio pour nos reunions
-nous avons 127h pour realisés le projet
-nous avons choisis custom tkinter pour l'interface graphique 
