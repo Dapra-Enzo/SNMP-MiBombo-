@@ -3116,11 +3116,11 @@ class ApplicationMiBombo(ctk.CTk):
             
             self._detector = get_detector()
             
-            self._status_label.configure(text="✓ Système prêt", text_color=THEME["success"])
+            # self._status_label.configure(text="✓ Système prêt", text_color=THEME["success"])
         except Exception as e:
             print(f"[!] Initialisation de core mal exécuter: {e}")
             traceback.print_exc()
-            self._status_label.configure(text=f"⚠ Erreur: {e}", text_color=THEME["error"])
+            # self._status_label.configure(text=f"⚠ Erreur: {e}", text_color=THEME["error"])
 
 
         
@@ -3473,7 +3473,7 @@ class ApplicationMiBombo(ctk.CTk):
         statusbar = ctk.CTkFrame(main_container, height=28, fg_color=THEME["bg_panel"], corner_radius=0)
         statusbar.pack(fill="x", side="bottom")
         
-        self._status_label = ctk.CTkLabel(statusbar, text="Initialisation...",
+        self._status_label = ctk.CTkLabel(statusbar, text="",
                                          font=ctk.CTkFont(size=10),
                                          text_color=THEME["text_muted"])
         self._status_label.pack(side="left", padx=15, pady=5)
@@ -3481,10 +3481,11 @@ class ApplicationMiBombo(ctk.CTk):
         # self._user_status supprimé pour éviter les doublons
         
         
-        core_txt = "Core OK" if CORE_AVAILABLE else "Core ERR"
-        core_col = THEME["success"] if CORE_AVAILABLE else THEME["error"]
-        ctk.CTkLabel(statusbar, text=core_txt, font=ctk.CTkFont(size=10),
-                    text_color=core_col).pack(side="right", padx=15)
+        # Core status - affichage désactivé (visible uniquement dans les logs)
+        # core_txt = "Core OK" if CORE_AVAILABLE else "Core ERR"
+        # core_col = THEME["success"] if CORE_AVAILABLE else THEME["error"]
+        # ctk.CTkLabel(statusbar, text=core_txt, font=ctk.CTkFont(size=10),
+        #             text_color=core_col).pack(side="right", padx=15)
         
         # Container pour les pages
         self._pages_container = ctk.CTkFrame(main_container, fg_color=THEME["bg_main"])
