@@ -69,7 +69,7 @@ class SecureLoginWindow:
         # État
         self._user_id = None
         self._current_email = None
-        self._step = "login"  # login, 2fa, change_password, register, forgot
+        self._step = "login"  # login, email_verification, change_password, register, forgot
         
         # Fenêtre principale
         self.root = ctk.CTk()
@@ -310,44 +310,44 @@ class SecureLoginWindow:
         self._user_id = user_id
         self._current_email = email
         
-        # Vérifier 2FA
+        # Vérifier si vérification email requise
         need_2fa, reason = self.auth.login_step2_check_2fa(user_id)
         
         if need_2fa:
-            # Envoyer le code
+            # Envoyer le code par email
             success, msg = self.auth.login_step2_send_code(user_id)
             if success:
-                self._show_2fa()
+                self._show_email_verification()
             else:
-                self.error_label.configure(text=f"Erreur 2FA: {msg}")
+                self.error_label.configure(text=f"Erreur envoi code: {msg}")
         else:
             # Login direct
             self._complete_login()
     
-    # ==================== FORMULAIRE 2FA ====================
+    # ==================== FORMULAIRE VERIFICATION EMAIL ====================
     
-    def _show_2fa(self):
-        """Affiche le formulaire 2FA"""
+    def _show_email_verification(self):
+        """Affiche le formulaire de vérification par email"""
         self._clear_content()
-        self._step = "2fa"
+        self._step = "email_verification"
         
         # Icône
         ctk.CTkLabel(
             self.content_frame,
-            text="🔐",
+            text="�",
             font=ctk.CTkFont(size=36)
         ).pack(pady=(10, 5))
         
         ctk.CTkLabel(
             self.content_frame,
-            text="Vérification en deux étapes",
+            text="Vérification par email",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=THEME["text"]
         ).pack()
         
         ctk.CTkLabel(
             self.content_frame,
-            text=f"Un code a été envoyé à\n{self._current_email}",
+            text=f"Un code de vérification a été envoyé à\n{self._current_email}",
             font=ctk.CTkFont(size=11),
             text_color=THEME["text_secondary"],
             justify="center"
@@ -380,7 +380,7 @@ class SecureLoginWindow:
         self.trust_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(
             card,
-            text="Faire confiance à cet appareil (30 jours)",
+            text="Mémoriser cet appareil (30 jours)",
             variable=self.trust_var,
             font=ctk.CTkFont(size=11),
             text_color=THEME["text_secondary"],
@@ -451,7 +451,7 @@ class SecureLoginWindow:
                 self.error_label.configure(text=msg, text_color=THEME["error"])
     
     def _verify_code(self):
-        """Vérifie le code 2FA"""
+        """Vérifie le code de vérification email"""
         code = self.code_entry.get().strip()
         
         if not code or len(code) != 6 or not code.isdigit():
