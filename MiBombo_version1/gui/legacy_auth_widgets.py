@@ -1,8 +1,17 @@
 """
-Le fichier auth_widgets.py contient les widgets d'authentification pour MiBombo GUI suivantes : 
-- La fenêtre de permettant de se connecter
--
+MiBombo - Module Legacy d'Authentification GUI (Déprécié)
+============================================================
+Widgets CustomTkinter pour la gestion des sessions utilisateur.
 
+Composants implémentés:
+- LoginWindow: Fenêtre modale de connexion (credentials -> bcrypt validation)
+- ProfilePanel: Affichage profil + changement MDP + déconnexion
+- UserManagementPanel: CRUD utilisateurs avec onglets (users/tickets)
+- UserDialog: Formulaire modal création/édition utilisateur
+
+Backend: core.authentication.AuthenticationManager (SQLite + bcrypt)
+Note: Ce module est conservé pour compatibilité descendante.
+      Utiliser auth_panel.py (SecureLoginWindow) pour les nouvelles implémentations.
 """
 
 import customtkinter as ctk
@@ -20,7 +29,7 @@ sys.path.insert(0, ROOT_DIR)
 
 from core.authentication import AuthenticationManager, get_auth_manager, ROLES, PERMISSIONS
 
-#-------------------Theme pour les widgets----------------------------------------
+# Palette de couleurs - Thème 
 
 THEME = {
     "bg_main": "#000000",
@@ -44,16 +53,17 @@ THEME = {
 
 class LoginWindow(ctk.CTkToplevel):
     """
-    Fenêtre de connexion modale (Pop-up) bloquant l'accès à l'application principale.
+    Fenêtre de connexion modale bloquante (pattern Modal Dialog).
     
-    Utilité :
-    - Authentifier l'utilisateur avant l'accès aux fonctionnalités.
-    - Sécuriser l'application via mot de passe (et potentiellement 2FA).
-    - Fournir un retour visuel en cas d'erreur de connexion.
-
-    Fonctions associées :
-    - _build_ui() : Construit le formulaire de connexion (champs user/pass, logo).
-    - _login() : Valide les identifiants via l'AuthenticationManager et ferme la fenêtre si succès.
+    Architecture:
+    - Hérite de CTkToplevel pour affichage au-dessus de la fenêtre principale
+    - grab_set() capture tous les événements (modal blocking)
+    - Validation credentials via AuthenticationManager.login()
+    
+    Sécurité:
+    - Password masqué (show="•")
+    - Clear password field on failed attempt
+    - Callback on_login_success(user_dict) sur authentification réussie
     """
     
     def __init__(self, parent, on_login_success: Callable = None):
@@ -162,7 +172,7 @@ class LoginWindow(ctk.CTkToplevel):
                     text_color=THEME["text_secondary"]).pack()
     
     def _login(self):
-        """Tente la connexion."""
+        """Exécute la validation credentials via AuthenticationManager.login()."""
         username = self.username_entry.get().strip()
         password = self.password_entry.get()
         
@@ -194,18 +204,16 @@ class LoginWindow(ctk.CTkToplevel):
 
 class ProfilePanel(ctk.CTkFrame):
     """
-    Panneau affichant les informations de l'utilisateur connecté et ses options personnelles.
+    Panneau de profil utilisateur avec gestion de session.
     
-    Utilité :
-    - Visualiser son profil (Rôle, Email, Dernière connexion).
-    - Modifier son mot de passe de manière sécurisée.
-    - Se déconnecter de la session courante.
-
-    Fonctions associées :
-    - _build_ui() : Construit l'interface du profil (infos, changement MDP).
-    - update_profile() : Rafraîchit les labels avec les données de l'utilisateur courant.
-    - _change_password() : Gère le formulaire de changement de mot de passe (vérification, update).
-    - _logout() : Déconnecte l'utilisateur et déclenche le callback de sortie.
+    Sections:
+    - Informations: username, full_name, email, role, last_login
+    - Changement MDP: validation ancien MDP + nouveau MDP (min 6 car.)
+    - Permissions: liste RBAC (Role-Based Access Control)
+    
+    Sécurité:
+    - Vérification ancien MDP avant changement
+    - Confirmation déconnexion via messagebox.askyesno()
     """
     
     def __init__(self, parent, auth_manager: AuthenticationManager = None, 
@@ -218,7 +226,7 @@ class ProfilePanel(ctk.CTkFrame):
         self._build_ui()
     
     def _build_ui(self):
-        """Construit le panneau de profil."""
+        """Initialise les sections: header, infos, changement MDP, permissions."""
         # Header
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x", padx=20, pady=(20, 15))
