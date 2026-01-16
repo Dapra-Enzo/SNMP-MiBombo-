@@ -192,9 +192,10 @@ vulnerability-scan.txt
 # ============================================
 # EXCLUSIONS UTILISATEUR & NETTOYAGE
 # ============================================
-# Markdown (Sauf README)
+# Markdown (Sauf README et Documentation Technique)
 *.md
 !README.md
+!docs/DOCUMENTATION_TECHNIQUE.md
 
 # Fichiers Sensibles / Admin
 ADMIN.txt

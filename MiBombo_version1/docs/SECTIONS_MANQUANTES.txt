@@ -1,0 +1,44 @@
+================================================================================
+     SECTIONS À AJOUTER APRÈS "6.3 Interface Principale (GUI)" ligne ~741
+     AVANT "6.4 API REST"
+================================================================================
+
+
+### 6.3.1 Onglet Sniffer
+
+L'onglet **Sniffer** (📡) permet de capturer et visualiser en temps réel les paquets SNMP transitant sur le réseau.
+
+L'interface affiche une liste chronologique de tous les paquets capturés avec les informations essentielles : horodatage, adresses IP source/destination, version SNMP, type de PDU et statut de conformité (🟢 OK / 🟡 WARN / 🔴 ALERT).
+
+En cliquant sur une trame dans la liste, le panneau de détails s'affiche en bas de l'écran. Il présente l'ensemble des informations du paquet sélectionné : adresses MAC, ports UDP, community string (v1/v2c) ou paramètres USM (v3), liste des OID interrogés avec leurs valeurs, et pour SNMPv3, le statut du déchiffrement si les credentials sont configurés.
+
+Des boutons d'action permettent de faire confiance à une source (whitelist), de la bloquer, ou d'exporter le paquet.
+
+*cf. Figure 27 : Onglet Sniffer avec liste des paquets et détails d'une trame sélectionnée*
+
+---
+
+### 6.3.2 Onglet Émetteur SNMP
+
+L'onglet **Émetteur SNMP** (📤) permet d'envoyer des requêtes SNMP (GET, SET, WALK, GETNEXT) vers des équipements du réseau pour tester leur connectivité ou interroger des OID spécifiques.
+
+L'utilisateur configure la cible (IP, port), sélectionne la version SNMP (v2c ou v3) avec les paramètres d'authentification correspondants, puis choisit l'OID à interroger parmi une liste de raccourcis prédéfinis (Description Système, Uptime, Table Interfaces, etc.) ou en le saisissant manuellement.
+
+Les résultats s'affichent dans le panneau de droite avec le temps de réponse et les valeurs retournées.
+
+*cf. Figure 28 : Interface de l'émetteur SNMP avec configuration et résultats*
+
+---
+
+### 6.3.3 Onglet Équipements
+
+L'onglet **Équipements** (🖥️) présente la liste de tous les appareils détectés sur le réseau lors des captures SNMP.
+
+Pour chaque équipement, l'interface affiche : l'adresse IP, l'adresse MAC, le type d'appareil détecté, le fabricant (vendor), la date de première et dernière observation, ainsi que le nombre de paquets échangés.
+
+Un système de statut permet de marquer les équipements comme "Whitelistés" (de confiance) ou "Blacklistés" (bloqués). Ces marquages influencent directement le niveau d'alerte affiché dans l'onglet Sniffer pour les paquets provenant de ces sources.
+
+*cf. Figure 29 : Liste des équipements découverts avec leurs informations*
+
+---
+

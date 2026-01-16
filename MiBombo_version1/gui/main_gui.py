@@ -82,11 +82,11 @@ except ImportError as e:
 
 # Import des widgets d'authentification (ancien système - fallback)
 try:
-    from gui.auth_widgets import LoginWindow, ProfilePanel, UserManagementPanel
+    from gui.legacy_auth_widgets import LoginWindow, ProfilePanel, UserManagementPanel
     AUTH_WIDGETS_AVAILABLE = True
 except ImportError:
     try:
-        from auth_widgets import LoginWindow, ProfilePanel, UserManagementPanel
+        from legacy_auth_widgets import LoginWindow, ProfilePanel, UserManagementPanel
         AUTH_WIDGETS_AVAILABLE = True
     except ImportError:
         AUTH_WIDGETS_AVAILABLE = False
@@ -108,7 +108,7 @@ try:
     get_secure_auth_manager = _get_secure_auth_manager
     print("[+] Les modules de l'authentification sécurisé sont bien chargés")
     
-    from gui.secure_auth_widgets import (
+    from gui.auth_panel import (
         SecureLoginWindow as _SecureLoginWindow, 
         run_secure_login as _run_secure_login,
         TicketManagementPanel as _TicketManagementPanel,
@@ -128,7 +128,7 @@ except ImportError as e:
         from secure_auth import get_secure_auth_manager as _get_secure_auth_manager
         get_secure_auth_manager = _get_secure_auth_manager
         
-        from secure_auth_widgets import (
+        from auth_panel import (
             SecureLoginWindow as _SecureLoginWindow, 
             run_secure_login as _run_secure_login,
             TicketManagementPanel as _TicketManagementPanel,
@@ -156,14 +156,14 @@ TOPOLOGY_WIDGET_AVAILABLE = False
 TopologyPanel = None
 get_topology = None
 try:
-    from gui.topology_widget import TopologyPanel as _TopologyPanel, get_topology as _get_topology
+    from gui.sem_topology import TopologyPanel as _TopologyPanel, get_topology as _get_topology
     TopologyPanel = _TopologyPanel
     get_topology = _get_topology
     TOPOLOGY_WIDGET_AVAILABLE = True
     print("[+] Le widget de topologie est bien chargé")
 except ImportError:
     try:
-        from topology_widget import TopologyPanel as _TopologyPanel, get_topology as _get_topology
+        from sem_topology import TopologyPanel as _TopologyPanel, get_topology as _get_topology
         TopologyPanel = _TopologyPanel
         get_topology = _get_topology
         TOPOLOGY_WIDGET_AVAILABLE = True
