@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 """
 MiBombo - Interface GUI Sniffer SNMP
-========================================================
+version 1.0.0
+Fontionnalité des classes :
+- Sniffer : Permet de capturer les paquets SNMP
+- Analyser : Permet d'analyser les paquets SNMP
+- DataBase : Permet de stocker les paquets SNMP
+- ConfAPP : Permet de configurer l'application
+- get_detector : Permet de detecter les anomalies
+- AuthManager : Permet de gérer l'authentification
+- get_auth_manager : Permet de gérer l'authentification
+- logger : Permet de logger les actions de l'utilisateur
 """
 
 # Liste des imports a avoir
@@ -262,7 +271,7 @@ FONTS = {
 ctk.set_appearance_mode("light")
 
 
-# ───────────────────── Choix des widgets graphiques ─────────────────────
+# ───────────────────── Choix des widgets graphiques ───────────────────
 
 
 class GraphiqueTemps(tk.Frame):
@@ -609,96 +618,8 @@ class JaugeCirculaire(tk.Frame):
         self._draw_gauge()
 
 
-class GraphiqueDonut(tk.Frame):
-    """
-    Widget affichant un diagramme en beignet pour les proportions.
-    
-    Utilité :
-    - Montrer la répartition en pourcentage d'un tout (ex: Versions SNMP v1/v2c/v3).
-    - Visualiser les parts relatives de chaque catégorie.
-    - Esthétique moderne et compacte comparée à un camembert classique.
 
-    Fonctions associées :
-    - _build() : Initialise le graphique circulaire.
-    - update(data, colors) : Met à jour les sections du beignet avec les nouvelles proportions et couleurs.
-    """
-    
-    def __init__(self, parent, title="", **kwargs):
-        """Initialisation du graphique"""
-        tk_kwargs = {k: v for k, v in kwargs.items() if k in ['width', 'height']}
-        super().__init__(parent, bg=THEME["bg_card"], **tk_kwargs)
-        self._title = title
-        self._fig = None
-        self._ax = None
-        self._canvas = None
-        self._build()
-    
-    def _build(self):
-        """Fonctionnement : 
-        - Création d'une figure avec matplotlib
-        - Création d'un graphique en forme de donut avec matplotlib
-        - Création d'un canvas avec tkinter
-        - Ajout du graphique dans le canvas
-        - Mise à jour du graphique"""
-        tk.Label(self, text=self._title, font=("Segoe UI", 12, "bold"),
-                 fg=THEME["text_secondary"], bg=THEME["bg_card"]).pack(pady=(10, 5))
-        
-        
-        self._fig = Figure(figsize=(3, 2.5), dpi=100, facecolor=THEME["bg_card"])
-        self._ax = self._fig.add_subplot(111)
-        
-        self._canvas = FigureCanvasTkAgg(self._fig, self)
-        self._canvas.get_tk_widget().configure(bg=THEME["bg_card"], highlightthickness=0)
-        self._canvas.get_tk_widget().pack(fill="both", expand=True)
-        
-        
-        self.update({"No Data": 1}, ["#444444"])
 
-    def update(self, data: dict, colors: list = None):
-        """Fonctionnement :
-        - Mise à jour des données
-        - Mise à jour des couleurs
-        - Mise à jour du graphique"""
-        if not self._ax: return
-        
-        self._ax.clear()
-        
-        labels = list(data.keys())
-        sizes = list(data.values())
-        
-        if not sizes or sum(sizes) == 0:
-            sizes = [1]
-            labels = ["No Data"]
-            chart_colors = ["#333333"]
-            text_color = "#555555"
-        else:
-            chart_colors = colors if colors else [THEME["chart_blue"], THEME["chart_green"], THEME["chart_orange"], THEME["error"]]
-            text_color = THEME["text_primary"]
-
-       
-        wedges, texts, autotexts = self._ax.pie(
-            sizes, labels=labels, autopct='%1.1f%%', startangle=90,
-            colors=chart_colors, pctdistance=0.85, 
-            textprops=dict(color=text_color, fontsize=9)
-        )
-     
-        centre_circle = plt.Circle((0,0), 0.70, fc=THEME["bg_card"])
-        self._ax.add_artist(centre_circle)
-        
-     
-        for t in texts:
-            t.set_color(THEME["text_secondary"])
-            t.set_fontsize(8)
-            
-        self._ax.axis('equal')  
-        self._fig.tight_layout()
-        
-        try:
-            self._canvas.draw_idle()
-        except:
-            pass
-
-# ───────────────────── WIDGETS STATISTIQUES POUR LES PROTOCOLES ─────────────────────
 
 
 class CarteStatistique(ctk.CTkFrame):
@@ -737,6 +658,290 @@ class CarteStatistique(ctk.CTkFrame):
         self._value_label.configure(text=str(val))
         if color:
             self._value_label.configure(text_color=color)
+
+class TableauBordAPI(ctk.CTkFrame):
+    """Dashboard API - Stats, Docs & Testeur"""
+    
+    def __init__(self, parent, **kwargs):
+        super().__init__(parent, fg_color=THEME["bg_main"], **kwargs)
+        
+        # Detect LAN IP
+        try:
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+        except:
+            ip = "127.0.0.1"
+            
+        self._base_url = f"https://{ip}:5000"
+        self._stats_queue = Queue()
+        self._build()
+        self._start_refresh_loop()
+        self.after(1000, self._poll_stats_queue)
+    
+    def _build(self):
+        # Scrollable container for all content
+        self._scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
+        self._scroll.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Build Dashboard section
+        self._build_dashboard(self._scroll)
+        
+        # Separator
+        sep = ctk.CTkFrame(self._scroll, fg_color=THEME["grid"], height=2)
+        sep.pack(fill="x", padx=20, pady=20)
+        
+        # Build Tester section (below dashboard)
+        self._build_tester(self._scroll)
+
+    def _build_dashboard(self, parent):
+        # 1. Header Pro
+        header = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10, height=80)
+        header.pack(fill="x", padx=10, pady=10)
+        
+        ctk.CTkLabel(header, text="📡 API Gateway", 
+                    font=ctk.CTkFont(size=22, weight="bold"),
+                    text_color=THEME["accent"]).pack(side="left", padx=20, pady=15)
+                    
+        # Status Badge
+        self._status_badge = ctk.CTkLabel(header, text="● EN LIGNE", 
+                                        font=ctk.CTkFont(size=12, weight="bold"),
+                                        text_color=THEME["success"])
+        self._status_badge.pack(side="left", padx=10)
+        
+        # Link
+        link_frame = ctk.CTkFrame(header, fg_color="transparent")
+        link_frame.pack(side="right", padx=20)
+        ctk.CTkLabel(link_frame, text="Endpoint:", text_color=THEME["text_muted"]).pack(side="left", padx=5)
+        url_entry = ctk.CTkEntry(link_frame, width=200, fg_color=THEME["bg_input"])
+        url_entry.insert(0, self._base_url)
+        url_entry.configure(state="readonly")
+        url_entry.pack(side="left")
+        
+        # 2. KPI Cards Row
+        stats_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        stats_frame.pack(fill="x", padx=5, pady=5)
+        stats_frame.grid_columnconfigure((0,1,2,3), weight=1)
+        
+        self._cards = {}
+        kp_config = [
+            ("total_requests", "📊 Total Requêtes", "0", THEME["accent"]),
+            ("error_rate", "⚠️ Taux d'Erreur", "0%", THEME["error"]),
+            ("avg_latency", "⏱️ Latence Moyenne", "0 ms", THEME["warning"]),
+            ("active_sessions", "👥 Sessions Actives", "0", THEME["success"])
+        ]
+        
+        for idx, (key, title, val, color) in enumerate(kp_config):
+            card = ctk.CTkFrame(stats_frame, fg_color=THEME["bg_card"], corner_radius=10)
+            card.grid(row=0, column=idx, padx=8, pady=8, sticky="ew")
+            
+            ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=11), text_color=THEME["text_secondary"]).pack(pady=(12,5))
+            val_lbl = ctk.CTkLabel(card, text=val, font=ctk.CTkFont(size=26, weight="bold"), text_color=color)
+            val_lbl.pack(pady=(0,12))
+            self._cards[key] = val_lbl
+
+        # 3. Security & Docs Row
+        row_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        row_frame.pack(fill="x", padx=5, pady=5)
+        row_frame.grid_columnconfigure((0,1), weight=1)
+        
+        # Gauche: Security
+        sec_frame = ctk.CTkFrame(row_frame, fg_color=THEME["bg_card"], corner_radius=10)
+        sec_frame.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
+        
+        ctk.CTkLabel(sec_frame, text="🛡️ Sécurité & Conformité", 
+                    font=ctk.CTkFont(size=14, weight="bold"), text_color=THEME["text_primary"]).pack(padx=15, pady=15, anchor="w")
+        
+        self._sec_labels = {}
+        for feat in ["🔒 HTTPS / TLS (SSL)", "🔑 Bearer Token Auth", "🛑 Rate Limiting"]:
+            l = ctk.CTkLabel(sec_frame, text=f"✓ {feat}", text_color=THEME["success"], anchor="w")
+            l.pack(padx=20, pady=4, fill="x")
+            self._sec_labels[feat] = l
+
+        # Droite: Docs
+        doc_frame = ctk.CTkFrame(row_frame, fg_color=THEME["bg_card"], corner_radius=10)
+        doc_frame.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
+        
+        ctk.CTkLabel(doc_frame, text="📚 Documentation", 
+                    font=ctk.CTkFont(size=14, weight="bold"), text_color=THEME["text_primary"]).pack(padx=15, pady=15, anchor="w")
+        
+        ctk.CTkLabel(doc_frame, text="Documentation interactive des endpoints\navec exemples et codes d'erreur.",
+                    text_color=THEME["text_secondary"], justify="left").pack(padx=20, pady=5, anchor="w")
+        
+        ctk.CTkButton(doc_frame, text="📄 Ouvrir la Doc Web", 
+                     command=self._open_docs,
+                     fg_color=THEME["accent"], hover_color=THEME["accent_hover"]).pack(pady=15)
+
+    def _open_docs(self):
+        url = f"{self._base_url}/api/docs"
+        import webbrowser, subprocess
+        
+        if os.geteuid() == 0:
+            user = os.environ.get('SUDO_USER')
+            if user:
+                try:
+                    # Try to run as the original user
+                    cmd = ["sudo", "-u", user, "xdg-open", url]
+                    subprocess.Popen(cmd)
+                    return
+                except Exception as e:
+                    print(f"Failed to launch browser as {user}: {e}")
+        
+        webbrowser.open(url)
+
+    def _build_tester(self, parent):
+        if not REQUESTS_AVAILABLE:
+            ctk.CTkLabel(parent, text="Module 'requests' requis\npip install requests",
+                        font=ctk.CTkFont(size=14),
+                        text_color=THEME["error"]).pack(pady=50)
+            return
+        
+        # Section Title
+        title_frame = ctk.CTkFrame(parent, fg_color="transparent")
+        title_frame.pack(fill="x", padx=10, pady=(5, 10))
+        ctk.CTkLabel(title_frame, text="🔧 Testeur d'API REST", 
+                    font=ctk.CTkFont(size=18, weight="bold"),
+                    text_color=THEME["text_primary"]).pack(side="left")
+        ctk.CTkLabel(title_frame, text="Testez vos endpoints directement", 
+                    font=ctk.CTkFont(size=12),
+                    text_color=THEME["text_muted"]).pack(side="left", padx=15)
+        
+        # Request Form Card
+        header = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10)
+        header.pack(fill="x", padx=10, pady=5)
+        
+        # URL Row
+        url_frame = ctk.CTkFrame(header, fg_color="transparent")
+        url_frame.pack(fill="x", padx=15, pady=12)
+        
+        ctk.CTkLabel(url_frame, text="🌐 URL:", font=ctk.CTkFont(size=12, weight="bold"), text_color=THEME["text_secondary"]).pack(side="left", padx=5)
+        self._url_entry = ctk.CTkEntry(url_frame, width=300, height=36, fg_color=THEME["bg_input"], corner_radius=8)
+        self._url_entry.insert(0, self._base_url)
+        self._url_entry.pack(side="left", padx=5, fill="x", expand=True)
+        
+        # Requête
+        req_frame = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=8)
+        req_frame.pack(fill="x", padx=15, pady=(0, 10))
+        
+        row = ctk.CTkFrame(req_frame, fg_color="transparent")
+        row.pack(fill="x", padx=15, pady=12)
+        
+        self._method_var = ctk.StringVar(value="GET")
+        ctk.CTkOptionMenu(row, values=["GET", "POST", "PUT", "DELETE"],
+                         variable=self._method_var, width=90, height=32,
+                         fg_color=THEME["bg_input"]).pack(side="left", padx=5)
+        
+        self._endpoint_entry = ctk.CTkEntry(row, width=280, height=32, placeholder_text="/api/status", fg_color=THEME["bg_input"])
+        self._endpoint_entry.insert(0, "/api/status")
+        self._endpoint_entry.pack(side="left", padx=10, fill="x", expand=True)
+        
+        ctk.CTkButton(row, text="Envoyer", command=self._send_request,
+                     fg_color=THEME["accent"], hover_color=THEME["accent_hover"],
+                     width=100, height=32).pack(side="left", padx=5)
+        
+        # Réponse
+        resp_frame = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=8)
+        resp_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        
+        self._status_label = ctk.CTkLabel(resp_frame, text="", font=ctk.CTkFont(size=11), text_color=THEME["text_muted"])
+        self._status_label.pack(side="top", anchor="e", padx=10, pady=5)
+        
+        self._response_text = ctk.CTkTextbox(resp_frame, fg_color=THEME["bg_panel"], font=ctk.CTkFont(family="Courier", size=11))
+        self._response_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+
+    def _start_refresh_loop(self):
+        """Poll stats from API periodically"""
+        if not self.winfo_exists(): return
+        
+        # Import SSL configuration
+        from core.ssl_config import SSL_VERIFY
+        
+        def fetch():
+            try:
+                # ✅ SSL verification enabled with MiBombo CA or system bundle
+                r = requests.get(f"{self._base_url}/api/stats", verify=SSL_VERIFY, timeout=2)
+                if r.status_code == 200:
+                    data = r.json().get("api_usage", {})
+                    self._stats_queue.put(data)
+            except:
+                pass
+            
+        Thread(target=fetch, daemon=True).start()
+        # Schedule next run from main thread
+        self.after(5000, self._start_refresh_loop)
+
+    def _poll_stats_queue(self):
+        """Check for stats updates from background thread"""
+        try:
+            while True:
+                data = self._stats_queue.get_nowait()
+                self._update_stats(data)
+        except Empty:
+            pass
+        
+        if self.winfo_exists():
+            self.after(1000, self._poll_stats_queue)
+
+    def _update_stats(self, data: Dict):
+        if not data: return
+        self._cards["total_requests"].configure(text=str(data.get("requests", 0)))
+        
+        errs = data.get("errors", 0)
+        reqs = data.get("requests", 0)
+        rate = (errs / reqs * 100) if reqs > 0 else 0
+        self._cards["error_rate"].configure(text=f"{rate:.1f}%")
+        
+        lat = data.get("avg_latency_ms", 0)
+        self._cards["avg_latency"].configure(text=f"{lat}ms")
+    
+    # ... (Méthodes réutilisées de TableauBordAPI)
+    def _set_endpoint(self, ep):
+        self._endpoint_entry.delete(0, "end")
+        self._endpoint_entry.insert(0, ep)
+    
+    def _send_request(self):
+        base = self._url_entry.get().strip().rstrip("/")
+        endpoint = self._endpoint_entry.get().strip()
+        if not endpoint.startswith("/"):
+            endpoint = "/" + endpoint
+        url = base + endpoint
+        method = self._method_var.get()
+        
+        self._response_text.delete("1.0", "end")
+        self._status_label.configure(text="Envoi...", text_color=THEME["warning"])
+        
+        def do_request():
+            try:
+                start = time.time()
+                kw = {"timeout": 10, "verify": False}
+                if method == "GET": r = requests.get(url, **kw)
+                elif method == "POST": r = requests.post(url, json={}, **kw)
+                elif method == "PUT": r = requests.put(url, json={}, **kw)
+                else: r = requests.delete(url, **kw)
+                elapsed = (time.time() - start) * 1000
+                
+                self.after(0, lambda: self._show_response(r, elapsed))
+            except Exception as e:
+                err_msg = str(e)
+                self.after(0, lambda: self._show_error(err_msg))
+        
+        Thread(target=do_request, daemon=True).start()
+    
+    def _show_response(self, r, elapsed):
+        color = THEME["success"] if r.status_code < 400 else THEME["error"]
+        self._status_label.configure(text=f"{r.status_code} - {elapsed:.0f}ms", text_color=color)
+        try:
+            txt = json.dumps(r.json(), indent=2)
+        except:
+            txt = r.text
+        self._response_text.insert("1.0", txt)
+        
+    def _show_error(self, msg):
+        self._status_label.configure(text="Erreur", text_color=THEME["error"])
+        self._response_text.insert("1.0", f"Exception: {msg}")
+    
 
 
 class PanneauAlertes(ctk.CTkFrame):
@@ -839,6 +1044,94 @@ class PanneauAlertes(ctk.CTkFrame):
         for widget in self._list_frame.winfo_children():
             widget.destroy()
 
+class GraphiqueDonut(tk.Frame):
+    """
+    Widget affichant un diagramme en beignet pour les proportions.
+    
+    Utilité :
+    - Montrer la répartition en pourcentage d'un tout (ex: Versions SNMP v1/v2c/v3).
+    - Visualiser les parts relatives de chaque catégorie.
+    - Esthétique moderne et compacte comparée à un camembert classique.
+
+    Fonctions associées :
+    - _build() : Initialise le graphique circulaire.
+    - update(data, colors) : Met à jour les sections du beignet avec les nouvelles proportions et couleurs.
+    """
+    
+    def __init__(self, parent, title="", **kwargs):
+        """Initialisation du graphique"""
+        tk_kwargs = {k: v for k, v in kwargs.items() if k in ['width', 'height']}
+        super().__init__(parent, bg=THEME["bg_card"], **tk_kwargs)
+        self._title = title
+        self._fig = None
+        self._ax = None
+        self._canvas = None
+        self._build()
+    
+    def _build(self):
+        """Fonctionnement : 
+        - Création d'une figure avec matplotlib
+        - Création d'un graphique en forme de donut avec matplotlib
+        - Création d'un canvas avec tkinter
+        - Ajout du graphique dans le canvas
+        - Mise à jour du graphique"""
+        tk.Label(self, text=self._title, font=("Segoe UI", 12, "bold"),
+                 fg=THEME["text_secondary"], bg=THEME["bg_card"]).pack(pady=(10, 5))
+        
+        
+        self._fig = Figure(figsize=(3, 2.5), dpi=100, facecolor=THEME["bg_card"])
+        self._ax = self._fig.add_subplot(111)
+        
+        self._canvas = FigureCanvasTkAgg(self._fig, self)
+        self._canvas.get_tk_widget().configure(bg=THEME["bg_card"], highlightthickness=0)
+        self._canvas.get_tk_widget().pack(fill="both", expand=True)
+        
+        
+        self.update({"No Data": 1}, ["#444444"])
+
+    def update(self, data: dict, colors: list = None):
+        """Fonctionnement :
+        - Mise à jour des données
+        - Mise à jour des couleurs
+        - Mise à jour du graphique"""
+        if not self._ax: return
+        
+        self._ax.clear()
+        
+        labels = list(data.keys())
+        sizes = list(data.values())
+        
+        if not sizes or sum(sizes) == 0:
+            sizes = [1]
+            labels = ["No Data"]
+            chart_colors = ["#333333"]
+            text_color = "#555555"
+        else:
+            chart_colors = colors if colors else [THEME["chart_blue"], THEME["chart_green"], THEME["chart_orange"], THEME["error"]]
+            text_color = THEME["text_primary"]
+
+       
+        wedges, texts, autotexts = self._ax.pie(
+            sizes, labels=labels, autopct='%1.1f%%', startangle=90,
+            colors=chart_colors, pctdistance=0.85, 
+            textprops=dict(color=text_color, fontsize=9)
+        )
+     
+        centre_circle = plt.Circle((0,0), 0.70, fc=THEME["bg_card"])
+        self._ax.add_artist(centre_circle)
+        
+     
+        for t in texts:
+            t.set_color(THEME["text_secondary"])
+            t.set_fontsize(8)
+            
+        self._ax.axis('equal')  
+        self._fig.tight_layout()
+        
+        try:
+            self._canvas.draw_idle()
+        except:
+            pass
 
 class TableauProfilsIP(ctk.CTkFrame):
     """
@@ -2294,32 +2587,7 @@ class ListeEquipements(ctk.CTkFrame):
                     btn_block = ctk.CTkButton(act_frame, text="⛔ Block", width=70, height=24,
                                             fg_color=THEME["bg_panel"], border_width=1, border_color=THEME["error"],
                                             text_color=THEME["error"], hover_color="#FEF2F2", font=ctk.CTkFont(size=11),
-                                            # On utilise une lambda pour appeler _on_select (détails) ou idéalement une action directe
-                                            # Pour l'instant, on redirige vers le panel de détails où on a déjà implémenté la logique complète _toggle_blocked
-                                            # Mais l'utilisateur veut le bouton "dans la catégorie action".
-                                            # Donc on va simuler un clic sur le bouton block du panel de détail en passant par une nouvelle callback ou astuce.
-                                            # Le plus propre est d'ajouter un callback on_block au widget, mais on va faire simple :
-                                            # On sélectionne l'appareil PUIS on appelle le toggle.
-                                            # Attends, DeviceListWidget ne connait pas DeviceManager directement, il passe par des callbacks.
-                                            # Callback _on_select affiche les détails. 
-                                            # On va ajouter un bouton qui selectionne l'item (pour afficher détails) ET clique virtuellement.
-                                            # Mieux : Comme on a pas accès au manager ici pour faire l'action directe, on va juste laisser le bouton
-                                            # qui redirige vers les détails (déja fait par _on_select).
-                                            # Ah mais l'utilisateur veut "le bouton bloqué doit se situé dans la catégorie action".
-                                            # Ca sous-entend qu'il veut CLIQUER DESSUS pour BLOQUER.
-                                            # Comme je ne peux pas facilement modifier __init__ sans tout casser, je vais supposer que l'action
-                                            # doit être effectuée. Mais sans DeviceManager ici... c'est dur.
-                                            # HEUREUSEMENT: PanneauDetailEquipement a la logique.
-                                            # MAIS DeviceListWidget est instancié dans MainGUI qui a le DeviceManager.
-                                            # Je vais tricher : je vais laisser le bouton afficher les détails, mais avec un texte clair.
-                                            # ET je vais ajouter un callback optionnel _on_block si je peux.
-                                            # NON, Restons simple : le bouton ici ne fait rien de plus que selectionner pour l'instant
-                                            # SAUF SI je modifie MainGUI pour passer une callback de blocage.
-                                            # Comme je ne veux pas modifier l'init de DeviceListWidget (trop risqué),
-                                            # Je vais utiliser le bouton pour selectionner L'APPAREIL et FOCUS le bouton block du panel.
-                                            # ... Bon, je vais juste mettre le bouton qui ouvre les détails. C'est déjà ça.
-                                            # L'utilisateur a dit "le bouton bloqué doit se situé dans la catégorie action".
-                                            # C'est visuel.
+                                    
                                             
                                             command=lambda d=dev: self._on_select(d) if self._on_select else None)
                     btn_block.pack(side="left", padx=2)
@@ -2336,242 +2604,6 @@ class ListeEquipements(ctk.CTkFrame):
         # Fonction d'export à implémenter
         pass
         
-class PanneauDetailEquipement(ctk.CTkFrame):
-    """Panneau de détails d'un appareil SNMP avec boutons d'action"""
-    
-    def __init__(self, parent, device_manager=None, on_action=None, **kwargs):
-        super().__init__(parent, fg_color=THEME["bg_card"], corner_radius=8, **kwargs)
-        self._device_manager = device_manager
-        self._on_action = on_action  # Callback pour rafraîchir après action
-        self._current_device = None
-        self._build()
-    
-    def _build(self):
-        # Header avec boutons
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.pack(fill="x", padx=15, pady=(12, 8))
-        
-        ctk.CTkLabel(header, text="📋 Détails de l'appareil",
-                    font=ctk.CTkFont(size=16, weight="bold"),
-                    text_color=THEME["text_primary"]).pack(side="left")
-        
-        # Boutons d'action
-        btn_frame = ctk.CTkFrame(header, fg_color="transparent")
-        btn_frame.pack(side="right")
-        
-        self._btn_trust = ctk.CTkButton(btn_frame, text="⭐ Confiance",
-                                       width=90, height=28,
-                                       font=ctk.CTkFont(size=11),
-                                       fg_color=THEME["success"],
-                                       hover_color="#2ea043",
-                                       command=self._toggle_trusted)
-        self._btn_trust.pack(side="left", padx=3)
-        
-        self._btn_ignore = ctk.CTkButton(btn_frame, text="🚫 Ignorer",
-                                        width=80, height=28,
-                                        font=ctk.CTkFont(size=11),
-                                        fg_color=THEME["bg_panel"],
-                                        hover_color=THEME["error"],
-                                        command=self._toggle_ignored)
-        self._btn_ignore.pack(side="left", padx=3)
-        
-        self._btn_block = ctk.CTkButton(btn_frame, text="⛔ Bloquer",
-                                        width=80, height=28,
-                                        font=ctk.CTkFont(size=11),
-                                        fg_color=THEME["error"],
-                                        hover_color="#b91c1c",
-                                        command=self._toggle_blocked)
-        self._btn_block.pack(side="left", padx=3)
-        
-        ctk.CTkButton(btn_frame, text="📋",
-                     width=32, height=28,
-                     font=ctk.CTkFont(size=12),
-                     fg_color=THEME["bg_panel"],
-                     hover_color=THEME["accent"],
-                     command=self._copy_ip).pack(side="left", padx=3)
-        
-        # Zone de texte
-        self._text = ctk.CTkTextbox(self, fg_color=THEME["bg_panel"],
-                                   font=ctk.CTkFont(family="Courier", size=12),
-                                   text_color=THEME["text_primary"])
-        self._text.pack(fill="both", expand=True, padx=12, pady=(0, 12))
-        self._text.insert("1.0", "Sélectionnez un appareil pour voir les détails...")
-        self._text.configure(state="disabled")
-    
-    def show_device(self, device: Dict):
-        """Affiche les détails d'un appareil"""
-        self._current_device = device
-        
-        # Mettre à jour les boutons
-        self._update_buttons()
-        
-        self._text.configure(state="normal")
-        self._text.delete("1.0", "end")
-        
-        # Déterminer rôle
-        roles = []
-        if device.get("is_manager"):
-            roles.append("Manager (envoie des requêtes)")
-        if device.get("is_agent"):
-            roles.append("Agent (répond aux requêtes)")
-        role_str = " & ".join(roles) if roles else "Non déterminé"
-        
-        # Versions SNMP
-        versions = device.get("snmp_versions", [])
-        versions_str = ", ".join(versions) if versions else "Non détecté"
-        
-        # Communities
-        communities = device.get("communities", [])
-        communities_str = ", ".join(communities) if communities else "N/A"
-        
-        # USM Users (v3)
-        usm_users = device.get("usm_users", [])
-        usm_str = ", ".join(usm_users) if usm_users else "N/A"
-        
-        # Ports
-        ports = device.get("ports", [])
-        ports_str = ", ".join(str(p) for p in sorted(ports)) if ports else "N/A"
-        
-        # Status spécial
-        is_trusted = device.get("is_trusted", False)
-        is_ignored = device.get("is_ignored", False)
-        is_blocked = device.get("is_blocked", False)
-        if is_blocked:
-            status_display = "⛔ BLOQUÉ"
-        elif is_trusted:
-            status_display = "⭐ CONFIANCE"
-        elif is_ignored:
-            status_display = "🚫 IGNORÉ"
-        else:
-            status_display = device.get('status', 'N/A').upper()
-        
-        # Nom personnalisé
-        custom_name = device.get("custom_name")
-        name_display = f"{custom_name} (personnalisé)" if custom_name else device.get('hostname', 'Inconnu')
-        
-        text = f"""
-═══════════════════════════════════════════════════════════════
-  APPAREIL SNMP  {status_display}
-═══════════════════════════════════════════════════════════════
-
-  ▸ IDENTIFICATION
-  ─────────────────────────────────────────────────────────────
-    Adresse IP:      {device.get('ip', 'N/A')}
-    Adresse MAC:     {device.get('mac', 'N/A')}
-    Hostname:        {name_display}
-    Vendor:          {device.get('vendor', 'Inconnu')}
-    Type:            {device.get('device_type', 'unknown').replace('_', ' ').title()}
-
-  ▸ INFORMATIONS SYSTÈME (MIB-2)
-  ─────────────────────────────────────────────────────────────
-    sysName:         {device.get('sys_name', 'N/A')}
-    sysDescr:        {(device.get('sys_descr') or 'N/A')[:60]}
-    sysLocation:     {device.get('sys_location', 'N/A')}
-
-  ▸ SNMP
-  ─────────────────────────────────────────────────────────────
-    Versions:        {versions_str}
-    Communities:     {communities_str}
-    USM Users (v3):  {usm_str}
-    Ports utilisés:  {ports_str}
-    Rôle:            {role_str}
-
-  ▸ STATISTIQUES
-  ─────────────────────────────────────────────────────────────
-    Total paquets:   {device.get('packet_count', 0)}
-    Requêtes:        {device.get('request_count', 0)}
-    Réponses:        {device.get('response_count', 0)}
-    Traps:           {device.get('trap_count', 0)}
-    Erreurs:         {device.get('error_count', 0)}
-    OIDs accédés:    {device.get('oids_count', 0)}
-
-  ▸ ACTIVITÉ
-  ─────────────────────────────────────────────────────────────
-    Première vue:    {device.get('first_seen', 'N/A')}
-    Dernière vue:    {device.get('last_seen', 'N/A')}
-
-═══════════════════════════════════════════════════════════════
-
-  
-"""
-        
-        self._text.insert("1.0", text)
-        self._text.configure(state="disabled")
-    
-    def _update_buttons(self):
-        """Met à jour l'apparence des boutons selon l'état"""
-        if not self._current_device:
-            return
-        
-        is_trusted = self._current_device.get("is_trusted", False)
-        is_ignored = self._current_device.get("is_ignored", False)
-        is_blocked = self._current_device.get("is_blocked", False)
-        
-        if is_trusted:
-            self._btn_trust.configure(text="⭐ Retiré", fg_color=THEME["warning"])
-        else:
-            self._btn_trust.configure(text="⭐ Confiance", fg_color=THEME["success"])
-        
-        if is_ignored:
-            self._btn_ignore.configure(text="👁️ Afficher", fg_color=THEME["accent"])
-        else:
-            self._btn_ignore.configure(text="🚫 Ignorer", fg_color=THEME["bg_panel"])
-            
-        if is_blocked:
-            self._btn_block.configure(text="🟢 Débloquer", fg_color=THEME["success"])
-        else:
-            self._btn_block.configure(text="⛔ Bloquer", fg_color=THEME["error"])
-    
-    def _toggle_trusted(self):
-        """Toggle l'état trusted"""
-        if self._current_device and self._device_manager:
-            ip = self._current_device.get("ip")
-            current = self._current_device.get("is_trusted", False)
-            self._device_manager.set_trusted(ip, not current)
-            self._current_device["is_trusted"] = not current
-            self._current_device["is_ignored"] = False
-            self._update_buttons()
-            self.show_device(self._current_device)
-            if self._on_action:
-                self._on_action()
-    
-    def _toggle_ignored(self):
-        """Toggle l'état ignored"""
-        if self._current_device and self._device_manager:
-            ip = self._current_device.get("ip")
-            current = self._current_device.get("is_ignored", False)
-            self._device_manager.set_ignored(ip, not current)
-            self._current_device["is_ignored"] = not current
-            self._current_device["is_trusted"] = False
-            self._update_buttons()
-            self.show_device(self._current_device)
-            if self._on_action:
-                self._on_action()
-    
-    def _toggle_blocked(self):
-        """Toggle l'état blocked"""
-        if self._current_device and self._device_manager:
-            ip = self._current_device.get("ip")
-            current = self._current_device.get("is_blocked", False)
-            self._device_manager.set_blocked(ip, not current)
-            self._current_device["is_blocked"] = not current
-            if not current:
-                self._current_device["is_trusted"] = False
-                self._current_device["is_ignored"] = False
-            self._update_buttons()
-            self.show_device(self._current_device)
-            if self._on_action:
-                self._on_action()
-
-    def _copy_ip(self):
-        """Copie l'IP dans le presse-papiers"""
-        if self._current_device:
-            ip = self._current_device.get("ip", "")
-            self.clipboard_clear()
-            self.clipboard_append(ip)
-
-
-
 
 class ListePaquets(ctk.CTkFrame):
     """Liste des paquets avec coloration selon l'analyse - Design Pro"""
@@ -2997,295 +3029,11 @@ class PanneauDetailPaquet(ctk.CTkFrame):
 
 
 
-class TableauBordAPI(ctk.CTkFrame):
-    """Dashboard API - Stats, Docs & Testeur"""
-    
-    def __init__(self, parent, **kwargs):
-        super().__init__(parent, fg_color=THEME["bg_main"], **kwargs)
-        
-        # Detect LAN IP
-        try:
-            import socket
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            ip = s.getsockname()[0]
-            s.close()
-        except:
-            ip = "127.0.0.1"
-            
-        self._base_url = f"https://{ip}:5000"
-        self._stats_queue = Queue()
-        self._build()
-        self._start_refresh_loop()
-        self.after(1000, self._poll_stats_queue)
-    
-    def _build(self):
-        # Scrollable container for all content
-        self._scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self._scroll.pack(fill="both", expand=True, padx=5, pady=5)
-        
-        # Build Dashboard section
-        self._build_dashboard(self._scroll)
-        
-        # Separator
-        sep = ctk.CTkFrame(self._scroll, fg_color=THEME["grid"], height=2)
-        sep.pack(fill="x", padx=20, pady=20)
-        
-        # Build Tester section (below dashboard)
-        self._build_tester(self._scroll)
-
-    def _build_dashboard(self, parent):
-        # 1. Header Pro
-        header = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10, height=80)
-        header.pack(fill="x", padx=10, pady=10)
-        
-        ctk.CTkLabel(header, text="📡 API Gateway", 
-                    font=ctk.CTkFont(size=22, weight="bold"),
-                    text_color=THEME["accent"]).pack(side="left", padx=20, pady=15)
-                    
-        # Status Badge
-        self._status_badge = ctk.CTkLabel(header, text="● EN LIGNE", 
-                                        font=ctk.CTkFont(size=12, weight="bold"),
-                                        text_color=THEME["success"])
-        self._status_badge.pack(side="left", padx=10)
-        
-        # Link
-        link_frame = ctk.CTkFrame(header, fg_color="transparent")
-        link_frame.pack(side="right", padx=20)
-        ctk.CTkLabel(link_frame, text="Endpoint:", text_color=THEME["text_muted"]).pack(side="left", padx=5)
-        url_entry = ctk.CTkEntry(link_frame, width=200, fg_color=THEME["bg_input"])
-        url_entry.insert(0, self._base_url)
-        url_entry.configure(state="readonly")
-        url_entry.pack(side="left")
-        
-        # 2. KPI Cards Row
-        stats_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        stats_frame.pack(fill="x", padx=5, pady=5)
-        stats_frame.grid_columnconfigure((0,1,2,3), weight=1)
-        
-        self._cards = {}
-        kp_config = [
-            ("total_requests", "📊 Total Requêtes", "0", THEME["accent"]),
-            ("error_rate", "⚠️ Taux d'Erreur", "0%", THEME["error"]),
-            ("avg_latency", "⏱️ Latence Moyenne", "0 ms", THEME["warning"]),
-            ("active_sessions", "👥 Sessions Actives", "0", THEME["success"])
-        ]
-        
-        for idx, (key, title, val, color) in enumerate(kp_config):
-            card = ctk.CTkFrame(stats_frame, fg_color=THEME["bg_card"], corner_radius=10)
-            card.grid(row=0, column=idx, padx=8, pady=8, sticky="ew")
-            
-            ctk.CTkLabel(card, text=title, font=ctk.CTkFont(size=11), text_color=THEME["text_secondary"]).pack(pady=(12,5))
-            val_lbl = ctk.CTkLabel(card, text=val, font=ctk.CTkFont(size=26, weight="bold"), text_color=color)
-            val_lbl.pack(pady=(0,12))
-            self._cards[key] = val_lbl
-
-        # 3. Security & Docs Row
-        row_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        row_frame.pack(fill="x", padx=5, pady=5)
-        row_frame.grid_columnconfigure((0,1), weight=1)
-        
-        # Gauche: Security
-        sec_frame = ctk.CTkFrame(row_frame, fg_color=THEME["bg_card"], corner_radius=10)
-        sec_frame.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
-        
-        ctk.CTkLabel(sec_frame, text="🛡️ Sécurité & Conformité", 
-                    font=ctk.CTkFont(size=14, weight="bold"), text_color=THEME["text_primary"]).pack(padx=15, pady=15, anchor="w")
-        
-        self._sec_labels = {}
-        for feat in ["🔒 HTTPS / TLS (SSL)", "🔑 Bearer Token Auth", "🛑 Rate Limiting"]:
-            l = ctk.CTkLabel(sec_frame, text=f"✓ {feat}", text_color=THEME["success"], anchor="w")
-            l.pack(padx=20, pady=4, fill="x")
-            self._sec_labels[feat] = l
-
-        # Droite: Docs
-        doc_frame = ctk.CTkFrame(row_frame, fg_color=THEME["bg_card"], corner_radius=10)
-        doc_frame.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
-        
-        ctk.CTkLabel(doc_frame, text="📚 Documentation", 
-                    font=ctk.CTkFont(size=14, weight="bold"), text_color=THEME["text_primary"]).pack(padx=15, pady=15, anchor="w")
-        
-        ctk.CTkLabel(doc_frame, text="Documentation interactive des endpoints\navec exemples et codes d'erreur.",
-                    text_color=THEME["text_secondary"], justify="left").pack(padx=20, pady=5, anchor="w")
-        
-        ctk.CTkButton(doc_frame, text="📄 Ouvrir la Doc Web", 
-                     command=self._open_docs,
-                     fg_color=THEME["accent"], hover_color=THEME["accent_hover"]).pack(pady=15)
-
-    def _open_docs(self):
-        url = f"{self._base_url}/api/docs"
-        import webbrowser, subprocess
-        
-        if os.geteuid() == 0:
-            user = os.environ.get('SUDO_USER')
-            if user:
-                try:
-                    # Try to run as the original user
-                    cmd = ["sudo", "-u", user, "xdg-open", url]
-                    subprocess.Popen(cmd)
-                    return
-                except Exception as e:
-                    print(f"Failed to launch browser as {user}: {e}")
-        
-        webbrowser.open(url)
-
-    def _build_tester(self, parent):
-        if not REQUESTS_AVAILABLE:
-            ctk.CTkLabel(parent, text="Module 'requests' requis\npip install requests",
-                        font=ctk.CTkFont(size=14),
-                        text_color=THEME["error"]).pack(pady=50)
-            return
-        
-        # Section Title
-        title_frame = ctk.CTkFrame(parent, fg_color="transparent")
-        title_frame.pack(fill="x", padx=10, pady=(5, 10))
-        ctk.CTkLabel(title_frame, text="🔧 Testeur d'API REST", 
-                    font=ctk.CTkFont(size=18, weight="bold"),
-                    text_color=THEME["text_primary"]).pack(side="left")
-        ctk.CTkLabel(title_frame, text="Testez vos endpoints directement", 
-                    font=ctk.CTkFont(size=12),
-                    text_color=THEME["text_muted"]).pack(side="left", padx=15)
-        
-        # Request Form Card
-        header = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10)
-        header.pack(fill="x", padx=10, pady=5)
-        
-        # URL Row
-        url_frame = ctk.CTkFrame(header, fg_color="transparent")
-        url_frame.pack(fill="x", padx=15, pady=12)
-        
-        ctk.CTkLabel(url_frame, text="🌐 URL:", font=ctk.CTkFont(size=12, weight="bold"), text_color=THEME["text_secondary"]).pack(side="left", padx=5)
-        self._url_entry = ctk.CTkEntry(url_frame, width=300, height=36, fg_color=THEME["bg_input"], corner_radius=8)
-        self._url_entry.insert(0, self._base_url)
-        self._url_entry.pack(side="left", padx=5, fill="x", expand=True)
-        
-        # Requête
-        req_frame = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=8)
-        req_frame.pack(fill="x", padx=15, pady=(0, 10))
-        
-        row = ctk.CTkFrame(req_frame, fg_color="transparent")
-        row.pack(fill="x", padx=15, pady=12)
-        
-        self._method_var = ctk.StringVar(value="GET")
-        ctk.CTkOptionMenu(row, values=["GET", "POST", "PUT", "DELETE"],
-                         variable=self._method_var, width=90, height=32,
-                         fg_color=THEME["bg_input"]).pack(side="left", padx=5)
-        
-        self._endpoint_entry = ctk.CTkEntry(row, width=280, height=32, placeholder_text="/api/status", fg_color=THEME["bg_input"])
-        self._endpoint_entry.insert(0, "/api/status")
-        self._endpoint_entry.pack(side="left", padx=10, fill="x", expand=True)
-        
-        ctk.CTkButton(row, text="Envoyer", command=self._send_request,
-                     fg_color=THEME["accent"], hover_color=THEME["accent_hover"],
-                     width=100, height=32).pack(side="left", padx=5)
-        
-        # Réponse
-        resp_frame = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=8)
-        resp_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
-        
-        self._status_label = ctk.CTkLabel(resp_frame, text="", font=ctk.CTkFont(size=11), text_color=THEME["text_muted"])
-        self._status_label.pack(side="top", anchor="e", padx=10, pady=5)
-        
-        self._response_text = ctk.CTkTextbox(resp_frame, fg_color=THEME["bg_panel"], font=ctk.CTkFont(family="Courier", size=11))
-        self._response_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-
-    def _start_refresh_loop(self):
-        """Poll stats from API periodically"""
-        if not self.winfo_exists(): return
-        
-        # Import SSL configuration
-        from core.ssl_config import SSL_VERIFY
-        
-        def fetch():
-            try:
-                # ✅ SSL verification enabled with MiBombo CA or system bundle
-                r = requests.get(f"{self._base_url}/api/stats", verify=SSL_VERIFY, timeout=2)
-                if r.status_code == 200:
-                    data = r.json().get("api_usage", {})
-                    self._stats_queue.put(data)
-            except:
-                pass
-            
-        Thread(target=fetch, daemon=True).start()
-        # Schedule next run from main thread
-        self.after(5000, self._start_refresh_loop)
-
-    def _poll_stats_queue(self):
-        """Check for stats updates from background thread"""
-        try:
-            while True:
-                data = self._stats_queue.get_nowait()
-                self._update_stats(data)
-        except Empty:
-            pass
-        
-        if self.winfo_exists():
-            self.after(1000, self._poll_stats_queue)
-
-    def _update_stats(self, data: Dict):
-        if not data: return
-        self._cards["total_requests"].configure(text=str(data.get("requests", 0)))
-        
-        errs = data.get("errors", 0)
-        reqs = data.get("requests", 0)
-        rate = (errs / reqs * 100) if reqs > 0 else 0
-        self._cards["error_rate"].configure(text=f"{rate:.1f}%")
-        
-        lat = data.get("avg_latency_ms", 0)
-        self._cards["avg_latency"].configure(text=f"{lat}ms")
-    
-    # ... (Méthodes réutilisées de TableauBordAPI)
-    def _set_endpoint(self, ep):
-        self._endpoint_entry.delete(0, "end")
-        self._endpoint_entry.insert(0, ep)
-    
-    def _send_request(self):
-        base = self._url_entry.get().strip().rstrip("/")
-        endpoint = self._endpoint_entry.get().strip()
-        if not endpoint.startswith("/"):
-            endpoint = "/" + endpoint
-        url = base + endpoint
-        method = self._method_var.get()
-        
-        self._response_text.delete("1.0", "end")
-        self._status_label.configure(text="Envoi...", text_color=THEME["warning"])
-        
-        def do_request():
-            try:
-                start = time.time()
-                kw = {"timeout": 10, "verify": False}
-                if method == "GET": r = requests.get(url, **kw)
-                elif method == "POST": r = requests.post(url, json={}, **kw)
-                elif method == "PUT": r = requests.put(url, json={}, **kw)
-                else: r = requests.delete(url, **kw)
-                elapsed = (time.time() - start) * 1000
-                
-                self.after(0, lambda: self._show_response(r, elapsed))
-            except Exception as e:
-                err_msg = str(e)
-                self.after(0, lambda: self._show_error(err_msg))
-        
-        Thread(target=do_request, daemon=True).start()
-    
-    def _show_response(self, r, elapsed):
-        color = THEME["success"] if r.status_code < 400 else THEME["error"]
-        self._status_label.configure(text=f"{r.status_code} - {elapsed:.0f}ms", text_color=color)
-        try:
-            txt = json.dumps(r.json(), indent=2)
-        except:
-            txt = r.text
-        self._response_text.insert("1.0", txt)
-        
-    def _show_error(self, msg):
-        self._status_label.configure(text="Erreur", text_color=THEME["error"])
-        self._response_text.insert("1.0", f"Exception: {msg}")
-    
-
 
 
 
 class ApplicationMiBombo(ctk.CTk):
-    """Application principale MiBombo  - Style Grafana"""
+    """Application principale MiBombo  - Style Thème RobotBoy"""
     
     def __init__(self):
         super().__init__()
@@ -4101,7 +3849,7 @@ class ApplicationMiBombo(ctk.CTk):
             
             # Header
             c.setFont("Helvetica-Bold", 24)
-            c.drawString(50, height - 50, "MiBombo Station - Rapport d'Audit")
+            c.drawString(50, height - 50, "MiBombo - Rapport d'Audit")
             c.setFont("Helvetica", 12)
             c.drawString(50, height - 70, f"Généré le: {time.strftime('%Y-%m-%d %H:%M:%S')}")
             c.line(50, height - 80, width - 50, height - 80)
@@ -5867,6 +5615,241 @@ class ApplicationMiBombo(ctk.CTk):
         else:
             # Ancien système
             self._update_profile_visibility()
+
+class PanneauDetailEquipement(ctk.CTkFrame):
+    """Panneau de détails d'un appareil SNMP avec boutons d'action"""
+    
+    def __init__(self, parent, device_manager=None, on_action=None, **kwargs):
+        super().__init__(parent, fg_color=THEME["bg_card"], corner_radius=8, **kwargs)
+        self._device_manager = device_manager
+        self._on_action = on_action  # Callback pour rafraîchir après action
+        self._current_device = None
+        self._build()
+    
+    def _build(self):
+        # Header avec boutons
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x", padx=15, pady=(12, 8))
+        
+        ctk.CTkLabel(header, text="📋 Détails de l'appareil",
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    text_color=THEME["text_primary"]).pack(side="left")
+        
+        # Boutons d'action
+        btn_frame = ctk.CTkFrame(header, fg_color="transparent")
+        btn_frame.pack(side="right")
+        
+        self._btn_trust = ctk.CTkButton(btn_frame, text="⭐ Confiance",
+                                       width=90, height=28,
+                                       font=ctk.CTkFont(size=11),
+                                       fg_color=THEME["success"],
+                                       hover_color="#2ea043",
+                                       command=self._toggle_trusted)
+        self._btn_trust.pack(side="left", padx=3)
+        
+        self._btn_ignore = ctk.CTkButton(btn_frame, text="🚫 Ignorer",
+                                        width=80, height=28,
+                                        font=ctk.CTkFont(size=11),
+                                        fg_color=THEME["bg_panel"],
+                                        hover_color=THEME["error"],
+                                        command=self._toggle_ignored)
+        self._btn_ignore.pack(side="left", padx=3)
+        
+        self._btn_block = ctk.CTkButton(btn_frame, text="⛔ Bloquer",
+                                        width=80, height=28,
+                                        font=ctk.CTkFont(size=11),
+                                        fg_color=THEME["error"],
+                                        hover_color="#b91c1c",
+                                        command=self._toggle_blocked)
+        self._btn_block.pack(side="left", padx=3)
+        
+        ctk.CTkButton(btn_frame, text="📋",
+                     width=32, height=28,
+                     font=ctk.CTkFont(size=12),
+                     fg_color=THEME["bg_panel"],
+                     hover_color=THEME["accent"],
+                     command=self._copy_ip).pack(side="left", padx=3)
+        
+        # Zone de texte
+        self._text = ctk.CTkTextbox(self, fg_color=THEME["bg_panel"],
+                                   font=ctk.CTkFont(family="Courier", size=12),
+                                   text_color=THEME["text_primary"])
+        self._text.pack(fill="both", expand=True, padx=12, pady=(0, 12))
+        self._text.insert("1.0", "Sélectionnez un appareil pour voir les détails...")
+        self._text.configure(state="disabled")
+    
+    def show_device(self, device: Dict):
+        """Affiche les détails d'un appareil"""
+        self._current_device = device
+        
+        # Mettre à jour les boutons
+        self._update_buttons()
+        
+        self._text.configure(state="normal")
+        self._text.delete("1.0", "end")
+        
+        # Déterminer rôle
+        roles = []
+        if device.get("is_manager"):
+            roles.append("Manager (envoie des requêtes)")
+        if device.get("is_agent"):
+            roles.append("Agent (répond aux requêtes)")
+        role_str = " & ".join(roles) if roles else "Non déterminé"
+        
+        # Versions SNMP
+        versions = device.get("snmp_versions", [])
+        versions_str = ", ".join(versions) if versions else "Non détecté"
+        
+        # Communities
+        communities = device.get("communities", [])
+        communities_str = ", ".join(communities) if communities else "N/A"
+        
+        # USM Users (v3)
+        usm_users = device.get("usm_users", [])
+        usm_str = ", ".join(usm_users) if usm_users else "N/A"
+        
+        # Ports
+        ports = device.get("ports", [])
+        ports_str = ", ".join(str(p) for p in sorted(ports)) if ports else "N/A"
+        
+        # Status spécial
+        is_trusted = device.get("is_trusted", False)
+        is_ignored = device.get("is_ignored", False)
+        is_blocked = device.get("is_blocked", False)
+        if is_blocked:
+            status_display = "⛔ BLOQUÉ"
+        elif is_trusted:
+            status_display = "⭐ CONFIANCE"
+        elif is_ignored:
+            status_display = "🚫 IGNORÉ"
+        else:
+            status_display = device.get('status', 'N/A').upper()
+        
+        # Nom personnalisé
+        custom_name = device.get("custom_name")
+        name_display = f"{custom_name} (personnalisé)" if custom_name else device.get('hostname', 'Inconnu')
+        
+        text = f"""
+═══════════════════════════════════════════════════════════════
+  APPAREIL SNMP  {status_display}
+═══════════════════════════════════════════════════════════════
+
+  ▸ IDENTIFICATION
+  ─────────────────────────────────────────────────────────────
+    Adresse IP:      {device.get('ip', 'N/A')}
+    Adresse MAC:     {device.get('mac', 'N/A')}
+    Hostname:        {name_display}
+    Vendor:          {device.get('vendor', 'Inconnu')}
+    Type:            {device.get('device_type', 'unknown').replace('_', ' ').title()}
+
+  ▸ INFORMATIONS SYSTÈME (MIB-2)
+  ─────────────────────────────────────────────────────────────
+    sysName:         {device.get('sys_name', 'N/A')}
+    sysDescr:        {(device.get('sys_descr') or 'N/A')[:60]}
+    sysLocation:     {device.get('sys_location', 'N/A')}
+
+  ▸ SNMP
+  ─────────────────────────────────────────────────────────────
+    Versions:        {versions_str}
+    Communities:     {communities_str}
+    USM Users (v3):  {usm_str}
+    Ports utilisés:  {ports_str}
+    Rôle:            {role_str}
+
+  ▸ STATISTIQUES
+  ─────────────────────────────────────────────────────────────
+    Total paquets:   {device.get('packet_count', 0)}
+    Requêtes:        {device.get('request_count', 0)}
+    Réponses:        {device.get('response_count', 0)}
+    Traps:           {device.get('trap_count', 0)}
+    Erreurs:         {device.get('error_count', 0)}
+    OIDs accédés:    {device.get('oids_count', 0)}
+
+  ▸ ACTIVITÉ
+  ─────────────────────────────────────────────────────────────
+    Première vue:    {device.get('first_seen', 'N/A')}
+    Dernière vue:    {device.get('last_seen', 'N/A')}
+
+═══════════════════════════════════════════════════════════════
+
+  
+"""
+        
+        self._text.insert("1.0", text)
+        self._text.configure(state="disabled")
+    
+    def _update_buttons(self):
+        """Met à jour l'apparence des boutons selon l'état"""
+        if not self._current_device:
+            return
+        
+        is_trusted = self._current_device.get("is_trusted", False)
+        is_ignored = self._current_device.get("is_ignored", False)
+        is_blocked = self._current_device.get("is_blocked", False)
+        
+        if is_trusted:
+            self._btn_trust.configure(text="⭐ Retiré", fg_color=THEME["warning"])
+        else:
+            self._btn_trust.configure(text="⭐ Confiance", fg_color=THEME["success"])
+        
+        if is_ignored:
+            self._btn_ignore.configure(text="👁️ Afficher", fg_color=THEME["accent"])
+        else:
+            self._btn_ignore.configure(text="🚫 Ignorer", fg_color=THEME["bg_panel"])
+            
+        if is_blocked:
+            self._btn_block.configure(text="🟢 Débloquer", fg_color=THEME["success"])
+        else:
+            self._btn_block.configure(text="⛔ Bloquer", fg_color=THEME["error"])
+    
+    def _toggle_trusted(self):
+        """Toggle l'état trusted"""
+        if self._current_device and self._device_manager:
+            ip = self._current_device.get("ip")
+            current = self._current_device.get("is_trusted", False)
+            self._device_manager.set_trusted(ip, not current)
+            self._current_device["is_trusted"] = not current
+            self._current_device["is_ignored"] = False
+            self._update_buttons()
+            self.show_device(self._current_device)
+            if self._on_action:
+                self._on_action()
+    
+    def _toggle_ignored(self):
+        """Toggle l'état ignored"""
+        if self._current_device and self._device_manager:
+            ip = self._current_device.get("ip")
+            current = self._current_device.get("is_ignored", False)
+            self._device_manager.set_ignored(ip, not current)
+            self._current_device["is_ignored"] = not current
+            self._current_device["is_trusted"] = False
+            self._update_buttons()
+            self.show_device(self._current_device)
+            if self._on_action:
+                self._on_action()
+    
+    def _toggle_blocked(self):
+        """Toggle l'état blocked"""
+        if self._current_device and self._device_manager:
+            ip = self._current_device.get("ip")
+            current = self._current_device.get("is_blocked", False)
+            self._device_manager.set_blocked(ip, not current)
+            self._current_device["is_blocked"] = not current
+            if not current:
+                self._current_device["is_trusted"] = False
+                self._current_device["is_ignored"] = False
+            self._update_buttons()
+            self.show_device(self._current_device)
+            if self._on_action:
+                self._on_action()
+
+    def _copy_ip(self):
+        """Copie l'IP dans le presse-papiers"""
+        if self._current_device:
+            ip = self._current_device.get("ip", "")
+            self.clipboard_clear()
+            self.clipboard_append(ip)
+
 
 
 class DialogueUtilisateursSNMP(ctk.CTkToplevel):
