@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=MiBombo
+Comment=Sniffer SNMP sécurisé
+Exec=/usr/bin/mibombo-station
+Icon=/usr/share/pixmaps/mibombo_logo.png
+Terminal=false
+Type=Application
+Categories=Network;Security;

@@ -1,0 +1,214 @@
+# ============================================
+# MiBombo Station - .gitignore
+# ============================================
+
+# ============================================
+# SECRETS & KEYS (CRITIQUE - NE JAMAIS COMMIT)
+# ============================================
+*.key
+*.pem
+*.crt
+*.srl
+!venv/lib/python3.13/site-packages/**/*.pem
+!venv/lib/python3.13/site-packages/**/*.crt
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# PKI Private Keys
+pki/**/*.key
+pki/**/*.pem
+rootCA.key
+rootCA.pem
+local_key.pem
+
+# ============================================
+# DATABASES (Données sensibles)
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# Databases spécifiques
+miburnout.db
+config/users.db
+config/auth.db
+data/*.db
+
+# ============================================
+# LOGS (Peuvent contenir des infos sensibles)
+# ============================================
+*.log
+logs/
+*.log.*
+
+# ============================================
+# PYTHON
+# ============================================
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+build_dist/
+develop-eggs/
+dist/
+website/*.deb
+website/*.rpm
+*.deb
+*.rpm
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+test_results.txt
+
+# ============================================
+# VIRTUAL ENVIRONMENT
+# ============================================
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# ============================================
+# DATA & CAPTURES (Volumineuses)
+# ============================================
+data/
+captures/
+backups/
+*.pcap
+*.pcapng
+
+# ============================================
+# CONFIGURATION SENSIBLE
+# ============================================
+config/mail_config.json
+config/conf.json
+
+# ============================================
+# IDE & EDITORS
+# ============================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+.*.swp
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============================================
+# OS FILES
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ============================================
+# TEMPORARY FILES
+# ============================================
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+# Dossiers de copies/backups locaux
+MiBombo_fixed/
+finale/
+backup/
+MiBombo_V1_backup/
+
+# ============================================
+# DOCUMENTATION BUILD
+# ============================================
+docs/_build/
+site/
+
+# ============================================
+# SECURITY REPORTS
+# ============================================
+security-report.json
+vulnerability-scan.txt
+
+# ============================================
+# EXCLUSIONS UTILISATEUR & NETTOYAGE
+# ============================================
+# Markdown (Sauf README)
+*.md
+!README.md
+
+# Fichiers Sensibles / Admin
+ADMIN.txt
+Rapport/
+
+# Dossiers Temporaires / Tests
+test_cap/
+deploy_dist/
+
+# Backups & Scripts Temp
+*.backup.*
+clean_comments*.py
+renommer_classes*.py
+MiBombo.desktop
+utils/autoConf.py
+gui/main_gui_backup_single_dash.py
+utils/pkts.py

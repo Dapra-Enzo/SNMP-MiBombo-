@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.1
+Type=Application
+Name=MiBombo
+GenericName=SNMP Security Station
+Comment=Analyseur de trafic SNMP professionnel
+Exec=pkexec /opt/mibombo/venv/bin/python /opt/mibombo/main.py
+Icon=/opt/mibombo/assets/icon.png
+Terminal=false
+Categories=Network;Security;System;
+Keywords=snmp;network;security;monitor;sniffer;
+StartupNotify=true

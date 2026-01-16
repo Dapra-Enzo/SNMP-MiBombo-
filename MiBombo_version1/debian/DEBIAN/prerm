@@ -1,0 +1,10 @@
+#!/bin/bash
+# Pre-removal script for MiBombo
+
+echo "🗑️ Désinstallation de MiBombo..."
+
+# Arrêter les processus en cours si existants
+pkill -f "python.*mibombo" 2>/dev/null || true
+pkill -f "python.*main.py" 2>/dev/null || true
+
+echo "[+] MiBombo préparé pour la suppression"

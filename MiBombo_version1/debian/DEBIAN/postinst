@@ -1,0 +1,49 @@
+#!/bin/bash
+# Post-installation script for MiBombo
+
+set -e
+
+INSTALL_DIR="/opt/mibombo"
+
+echo "🔧 Configuration de MiBombo..."
+
+# Créer le virtualenv s'il n'existe pas
+if [ ! -d "$INSTALL_DIR/venv" ]; then
+    echo "[+] Création de l'environnement virtuel..."
+    python3 -m venv "$INSTALL_DIR/venv"
+fi
+
+# Installer les dépendances
+echo "[+] Installation des dépendances Python..."
+"$INSTALL_DIR/venv/bin/pip" install --quiet --upgrade pip
+"$INSTALL_DIR/venv/bin/pip" install --quiet -r "$INSTALL_DIR/requirements.txt"
+
+# Générer les clés si .env n'existe pas
+if [ ! -f "$INSTALL_DIR/.env" ]; then
+    echo "[+] Génération des clés de sécurité..."
+    FERNET_KEY=$("$INSTALL_DIR/venv/bin/python" -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())")
+    cat > "$INSTALL_DIR/.env" << EOF
+# MiBombo Configuration - Generated at installation
+SNIFFER_KEY=$FERNET_KEY
+AUTH_KEY=$FERNET_KEY
+ENCRYPTION_KEY=$FERNET_KEY
+FLASK_SECRET_KEY=$(openssl rand -hex 32)
+EOF
+    chmod 600 "$INSTALL_DIR/.env"
+fi
+
+# Créer les répertoires de données
+mkdir -p "$INSTALL_DIR/data"
+mkdir -p "$INSTALL_DIR/pcaps"
+mkdir -p "$INSTALL_DIR/config"
+
+# Permissions
+chown -R root:root "$INSTALL_DIR"
+chmod -R 755 "$INSTALL_DIR"
+chmod 600 "$INSTALL_DIR/.env" 2>/dev/null || true
+
+echo "✅ MiBombo installé avec succès!"
+echo ""
+echo "   Lancer avec: sudo mibombo"
+echo "   Ou depuis le menu Applications"
+echo ""

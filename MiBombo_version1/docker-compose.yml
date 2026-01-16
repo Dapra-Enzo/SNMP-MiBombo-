@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  mibombo-app:
+    build: .
+    container_name: mibombo-app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./captures:/app/captures
+      - ./local_cert.pem:/app/local_cert.pem
+      - ./local_key.pem:/app/local_key.pem
+    environment:
+      - INFLUXDB_URL=http://influxdb:8086
+      - INFLUXDB_TOKEN=my-super-secret-auth-token
+      - INFLUXDB_ORG=mibombo-org
+      - INFLUXDB_BUCKET=mibombo-bucket
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - influxdb
+    # Network mode host might be needed for low-level sniffing, 
+    # but bridged mode is safer for general use.
+    # For sniffing host traffic: network_mode: "host"
+
+  influxdb:
+    image: influxdb:2.7
+    container_name: mibombo-influx
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=adminpassword123
+      - DOCKER_INFLUXDB_INIT_ORG=mibombo-org
+      - DOCKER_INFLUXDB_INIT_BUCKET=mibombo-bucket
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=my-super-secret-auth-token
+
+volumes:
+  influxdb-data:
+  influxdb-config:

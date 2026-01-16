@@ -1,0 +1,12 @@
+#!/bin/bash
+# MiBombo Launcher
+# Requires root for packet capture
+
+if [ "$EUID" -ne 0 ]; then
+    echo "⚠️  MiBombo nécessite les droits root pour la capture de paquets."
+    echo "   Relancement avec sudo..."
+    exec sudo "$0" "$@"
+fi
+
+cd /opt/mibombo
+exec /opt/mibombo/venv/bin/python /opt/mibombo/main.py "$@"

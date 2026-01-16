@@ -1,0 +1,3 @@
+"""
+init mibombo gui
+"""

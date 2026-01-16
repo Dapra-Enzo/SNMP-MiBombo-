@@ -1,0 +1,15 @@
+Package: mibombo
+Version: 1.1.0
+Section: net
+Priority: optional
+Architecture: all
+Depends: python3 (>= 3.10), python3-tk, python3-venv, python3-pip
+Maintainer: ENSA <supportensa@gmail.com>
+Homepage: https://github.com/IUT-Beziers/sae501-502-ensa_
+Description: MiBombo SNMP Security Station
+ Analyseur de trafic SNMP professionnel avec :
+ - Capture et analyse temps réel (v1, v2c, v3)
+ - Décryptage SNMPv3 (SHA/AES)
+ - Détection d'anomalies comportementales
+ - API REST sécurisée (HTTPS)
+ - Interface graphique moderne

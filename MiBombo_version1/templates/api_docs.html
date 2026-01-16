@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MiBombo API Documentation</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --secondary: #0f172a;
+            --card: #1e293b;
+            --text: #e2e8f0;
+            --accent: #38bdf8;
+            --success: #22c55e;
+            --warning: #eab308;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--secondary);
+            color: var(--text);
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ici se trouve le header */
+        .header {
+            background: var(--card);
+            padding: 20px 40px;
+            border-bottom: 3px solid var(--primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand i {
+            color: var(--primary);
+        }
+
+        .status {
+            font-size: 0.9rem;
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        /* La on a s notre container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 30px;
+        }
+
+        /* Le menu de gauche permet de naviguer entre les endpoints */
+        .sidebar {
+            position: sticky;
+            top: 40px;
+            height: fit-content;
+        }
+
+        .auth-card {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .auth-card h3 {
+            margin-top: 0;
+            color: var(--accent);
+            font-size: 1rem;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #334155;
+            background: #0f172a;
+            color: white;
+            box-sizing: border-box;
+        }
+
+        .btn-auth {
+            width: 100%;
+            padding: 10px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.2s;
+        }
+
+        .btn-auth:hover {
+            background: #0284c7;
+        }
+
+        /* Main Content */
+        .main-content {
+            min-width: 0;
+        }
+
+        .intro {
+            margin-bottom: 30px;
+        }
+
+        .intro h1 {
+            font-size: 2.2rem;
+            margin: 0 0 10px 0;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            width: fit-content;
+        }
+
+        /* Endpoints */
+        .endpoint-group {
+            margin-bottom: 30px;
+        }
+
+        .endpoint-card {
+            background: var(--card);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #334155;
+            overflow: hidden;
+            transition: 0.2s;
+        }
+
+        .endpoint-card:hover {
+            border-color: #475569;
+        }
+
+        .card-header {
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            background: rgba(30, 41, 59, 0.5);
+        }
+
+        .ep-method {
+            font-weight: bold;
+            font-size: 0.8rem;
+            padding: 4px 10px;
+            border-radius: 6px;
+            width: 70px;
+            text-align: center;
+            margin-right: 15px;
+        }
+
+        .GET {
+            background: rgba(14, 165, 233, 0.2);
+            color: #38bdf8;
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+
+        .POST {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .PUT {
+            background: rgba(234, 179, 8, 0.2);
+            color: #facc15;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        .DELETE {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .ep-path {
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            color: #e2e8f0;
+            flex-grow: 1;
+        }
+
+        .ep-desc {
+            color: #94a3b8;
+            font-size: 0.9rem;
+        }
+
+        .ep-chevron {
+            transition: 0.3s;
+            color: #64748b;
+        }
+
+        .card-body {
+            padding: 20px;
+            border-top: 1px solid #334155;
+            display: none;
+            background: #0f172a;
+        }
+
+        .card-body.open {
+            display: block;
+        }
+
+        .try-it-box {
+            background: #1e293b;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #334155;
+        }
+
+        .try-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .response-area {
+            background: #0f1117;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9rem;
+            color: #a5b4fc;
+            white-space: pre-wrap;
+            margin-top: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #334155;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-try {
+            padding: 8px 16px;
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-try:hover {
+            background: #0ea5e9;
+        }
+
+        .curl-box {
+            background: #0b0f19;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            flex-grow: 1;
+            border: 1px solid #1e293b;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+
+        /* Loader qui permet de montrer que la requete est en cours */
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border-left-color: #0f172a;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        .json-input {
+            width: 100%;
+            height: 100px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: #e2e8f0;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 6px;
+            box-sizing: border-box;
+            resize: vertical;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="brand">
+            <i class="fas fa-network-wired"></i>
+            MiBombo Station API <span style="font-size:0.8em; font-weight:normal; opacity:0.7">v{{ version }}</span>
+        </div>
+        <div class="status"><i class="fas fa-circle" style="font-size:0.6em; margin-right:5px"></i> En ligne</div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar: Global Params -->
+        <div class="sidebar">
+            <div class="auth-card">
+                <h3><i class="fas fa-lock"></i> Authentification</h3>
+                <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:15px">Entrez un token Admin pour débloquer
+                    toutes les fonctionnalités.</p>
+
+                <div class="input-group">
+                    <label>Bearer Token</label>
+                    <input type="text" id="globalToken" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6...">
+                </div>
+                <div class="input-group">
+                    <button class="btn-auth" onclick="login()">Se connecter (Admin)</button>
+                </div>
+                <div id="authStatus" style="font-size:0.8rem; color:#ef4444; min-height:1.2em"></div>
+            </div>
+
+            <div style="margin-top:20px; font-size:0.85rem; color:#64748b; line-height:1.6">
+                <p><strong>Status:</strong> Le serveur écoute sur tous les ports.</p>
+                <p><strong>Adresse Serveur (Lan):</strong> <code style="color:#38bdf8">{{ server_host }}</code></p>
+                <p><strong>Base URL:</strong> <code style="color:#38bdf8">{{ server_url }}</code></p>
+            </div>
+        </div>
+
+        <!-- Main: Endpoints -->
+        <div class="main-content">
+            <div class="intro">
+                <h1>Documentation Interactive</h1>
+                <p style="color: #94a3b8">Utilisez cette interface pour tester les endpoints de la station MiBombo en
+                    temps réel.</p>
+            </div>
+
+            <div id="endpointList">
+                {% for ep in endpoints %}
+                <div class="endpoint-card" onclick="toggleCard(this)">
+                    <div class="card-header">
+                        <div style="display:flex; align-items:center">
+                            <span class="ep-method {{ ep.method }}">{{ ep.method }}</span>
+                            <span class="ep-path">{{ ep.url }}</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:20px">
+                            <span class="ep-desc">{{ ep.desc }}</span>
+                            <i class="fas fa-chevron-down ep-chevron"></i>
+                        </div>
+                    </div>
+                    <div class="card-body" onclick="event.stopPropagation()">
+                        <div class="try-it-box">
+                            <div class="try-header">
+                                <span><i class="fas fa-code"></i> Testeur</span>
+                            </div>
+
+                            <!-- Input Params if needed (JSON Body) -->
+                            {% if ep.method in ['POST', 'PUT'] %}
+                            <div style="margin-bottom: 10px;">
+                                <label style="display:block; color:#94a3b8; font-size:0.8rem; margin-bottom:5px;">Corps
+                                    de la requête (JSON):</label>
+                                <textarea id="body-{{ loop.index }}" class="json-input"
+                                    placeholder='{"key": "value"}'></textarea>
+                            </div>
+                            {% endif %}
+
+                            <div class="action-row">
+                                <div class="curl-box" id="curl-{{ loop.index }}">
+                                    curl -k -X {{ ep.method }} "{{ server_url }}{{ ep.url }}" -H "Authorization: Bearer
+                                    <span class='token-display'>&lt;token&gt;</span>"
+                                </div>
+                                <button class="btn-try"
+                                    onclick="executeRequest('{{ ep.method }}', '{{ ep.url }}', 'resp-{{ loop.index }}', this)">
+                                    <div class="spinner"></div> <span>Envoyer</span>
+                                </button>
+                            </div>
+
+                            <div class="response-area" id="resp-{{ loop.index }}">En attente de la requête...</div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Automatisation de la connexion si un token est stocké dans le localStorage
+        const storedToken = localStorage.getItem("mibombo_token");
+        if (storedToken) {
+            document.getElementById("globalToken").value = storedToken;
+            updateTokenDisplay(storedToken);
+        }
+
+        document.getElementById("globalToken").addEventListener("input", function (e) {
+            updateTokenDisplay(e.target.value);
+        });
+
+        function updateTokenDisplay(token) {
+            const displays = document.querySelectorAll('.token-display');
+            displays.forEach(d => d.innerText = token || "<token>");
+        }
+
+        // Ajout des listeners pour les inputs JSON
+        document.querySelectorAll('.json-input').forEach(textarea => {
+            textarea.addEventListener('input', function (e) {
+                const id = e.target.id.replace('body-', '');
+                const curlBox = document.getElementById('curl-' + id);
+                if (curlBox) {
+                    let text = curlBox.innerHTML;
+                    // Restauration de la commande curl sans les paramètres de corps de requête
+                    text = text.split(' -d ')[0];
+                    text = text.split(" -H 'Content-Type: application/json'")[0];
+
+                    if (e.target.value.trim()) {
+                        // Quote les guillemets pour la sécurité de la commande curl 
+                        const safeBody = e.target.value.replace(/'/g, "'\\''");
+                        text += " -H 'Content-Type: application/json' -d '" + safeBody + "'";
+                    }
+                    curlBox.innerHTML = text;
+                }
+            });
+        });
+
+        function toggleCard(card) {
+            const body = card.querySelector('.card-body');
+            const chevron = card.querySelector('.ep-chevron');
+            if (body.classList.contains('open')) {
+                body.classList.remove('open');
+                chevron.style.transform = 'rotate(0deg)';
+            } else {
+                body.classList.add('open');
+                chevron.style.transform = 'rotate(180deg)';
+            }
+        }
+
+        async function login() {
+            // Demande user/pass
+            const user = prompt("Nom d'utilisateur (admin):", "admin");
+            const pass = prompt("Mot de passe:", "");
+            if (!user || !pass) return;
+
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+                const data = await res.json();
+
+                const stat = document.getElementById("authStatus");
+                if (data.success) {
+                    document.getElementById("globalToken").value = data.token;
+                    localStorage.setItem("mibombo_token", data.token);
+                    updateTokenDisplay(data.token);
+                    stat.style.color = "var(--success)";
+                    stat.innerText = "Connecté: " + data.user.role;
+                } else {
+                    stat.style.color = "#ef4444";
+                    stat.innerText = "Erreur: " + (data.error || "Inconnue");
+                }
+            } catch (e) {
+                alert("Erreur réseau: " + e);
+            }
+        }
+
+        async function executeRequest(method, url, outputId, btn) {
+            const token = document.getElementById("globalToken").value;
+            const output = document.getElementById(outputId);
+            const spinner = btn.querySelector('.spinner');
+            const btnText = btn.querySelector('span');
+
+            // Chargement de l'UI 
+            btn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.innerText = "...";
+            output.innerText = "Chargement...";
+            output.style.color = "#94a3b8";
+
+            try {
+                const headers = {};
+                if (token) headers['Authorization'] = 'Bearer ' + token;
+
+                const start = performance.now();
+
+                const options = { method: method, headers: headers };
+
+                // Ajout de la charge utile si elle existe (pour POST/PUT)
+                const bodyInput = document.getElementById('body-' + outputId.replace('resp-', ''));
+                if (bodyInput && bodyInput.value.trim()) {
+                    headers['Content-Type'] = 'application/json';
+                    options.body = bodyInput.value.trim();
+                }
+
+                const res = await fetch(url, options);
+                const end = performance.now();
+
+                let data;
+                const contentType = res.headers.get("content-type");
+                if (contentType && contentType.includes("application/json")) {
+                    data = await res.json();
+                    output.innerText = JSON.stringify(data, null, 2);
+                    output.style.color = "#a5b4fc";
+                } else {
+                    data = await res.text();
+                    output.innerText = data;
+                    output.style.color = "#cbd5e1";
+                }
+
+                // Ajout de la ligne de statut
+                const time = (end - start).toFixed(0);
+                const statusColor = res.ok ? "#22c55e" : "#ef4444";
+                const meta = `\n\n// Status: ${res.status} ${res.statusText}  |  Time: ${time}ms`;
+                output.innerText += meta;
+
+            } catch (err) {
+                output.innerText = "Erreur: " + err.message;
+                output.style.color = "#ef4444";
+            } finally {
+                btn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.innerText = "Envoyer";
+            }
+        }
+    </script>
+</body>
+
+</html>
