@@ -32,6 +32,8 @@ URL de base: https://<ip>:5000/api
 
 ## Support
 Pour toute assistance, contactez l'administrateur.
+
+Enfin bref jsp 
 """
     textbox.insert("0.0", documentation_text)
     textbox.configure(state="disabled") # Lecture seule
