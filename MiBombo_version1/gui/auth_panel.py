@@ -1,11 +1,22 @@
-                                                                #!/usr/bin/env python3
+#!/usr/bin/env python3
 """
-MiBombo  - Interface d'Authentification Sécurisée v2
+MiBombo - Module d'Authentification Sécurisée v2.0
 ============================================================
-Interface complète avec :
-- Inscription avec ticket evnoyer par mail a confirmer par admin sur soft 
-- Mot de passe oublié
-- Configuration SMTP
+Architecture MVC avec CustomTkinter pour l'interface utilisateur.
+
+Flux d'authentification implémentés:
+- Login multi-étapes avec OTP par email (SMTP/TLS)
+- Système de tickets d'inscription avec approbation administrateur
+- Récupération de mot de passe via token temporaire
+- Gestion des sessions avec mémorisation d'appareil (cookie 30j)
+
+Composants:
+- SecureLoginWindow: Fenêtre modale d'authentification
+- UserListPanel: CRUD utilisateurs (admin)
+- TicketManagementPanel: Gestion des demandes d'inscription
+
+Dépendances: customtkinter, PIL, threading
+Backend: core.secure_authentication (PostgreSQL + bcrypt)
 """
 
 import customtkinter as ctk
@@ -16,7 +27,7 @@ import threading
 import os
 import sys
 
-# Ajouter le chemin parent pour les imports
+# Injection du chemin parent dans sys.path pour résolution des imports core/*
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import du système d'auth
@@ -31,8 +42,8 @@ except ImportError:
         AUTH_AVAILABLE = False
         print("[!] Secure auth module not available")
 
-# Thème Grafana Dark
-# Thème White/Blue (Light Professional)
+# Palette de couleurs - Thème Light Professional (Tailwind CSS inspired)
+# Conformité WCAG 2.1 AA pour le contraste texte/fond
 THEME = {
     "bg": "#FFFFFF",
     "bg_secondary": "#F3F4F6",
@@ -60,16 +71,25 @@ THEME = {
 
 
 class SecureLoginWindow:
-    """Fenêtre de connexion sécurisée autonome"""
+    """
+    Fenêtre de connexion sécurisée autonome (pattern Singleton implicite).
+    
+    Implémente un flux d'authentification multi-étapes:
+    1. Credentials (username/password) → bcrypt hash verification
+    2. OTP par email (si 2FA activé) → code 6 chiffres, TTL 5min
+    3. Session token generation → JWT-like avec expiration
+    
+    Callbacks: on_success(user_dict) appelé après authentification réussie.
+    """
     
     def __init__(self, on_success: Callable[[Dict], None] = None):
         self.auth = get_secure_auth_manager() if AUTH_AVAILABLE else None
         self.on_success = on_success
         
-        # État
+        # Machine à états FSM pour le flux d'authentification
         self._user_id = None
         self._current_email = None
-        self._step = "login"  # login, email_verification, change_password, register, forgot
+        self._step = "login"  # États: login → email_verification → complete | change_password | register | forgot
         
         # Fenêtre principale
         self.root = ctk.CTk()
@@ -77,7 +97,7 @@ class SecureLoginWindow:
         self.root.geometry("450x720") # Plus grand pour tout afficher
         self.root.minsize(400, 600)
         self.root.resizable(True, True) # Permettre le redimensionnement
-        # Fond Bleu #2563EB (Tailwind Blue-600 like)
+        # Configuration fg_color via palette THEME (White #FFFFFF)
         self.root.configure(fg_color=THEME["login_bg"])
         
         # Centrer
@@ -90,8 +110,8 @@ class SecureLoginWindow:
         self._build_ui()
     
     def _build_ui(self):
-        """Construit l'interface"""
-        # Container principal avec scroll si nécessaire
+        """Initialise la hiérarchie des widgets CTk (pattern Composite)."""
+        # Frame racine transparent pour layout flexible
         self.main_frame = ctk.CTkFrame(self.root, fg_color="transparent")
         self.main_frame.pack(fill="both", expand=True, padx=35, pady=30)
         
@@ -106,7 +126,7 @@ class SecureLoginWindow:
         self._show_login()
     
     def _build_header(self):
-        """En-tête avec logo"""
+        """Construit l'en-tête: logo (assets/logo.png) + titre + sous-titre."""
         # Logo ou Icône
         try:
             # Try to find logo in assets/logo.png relative to this file's parent
@@ -152,14 +172,13 @@ class SecureLoginWindow:
         ).pack(pady=(0, 20))
     
     def _clear_content(self):
-        """Efface le contenu actuel"""
+        """Détruit tous les widgets enfants du content_frame (garbage collection Tk)."""
         for widget in self.content_frame.winfo_children():
             widget.destroy()
     
-    # ==================== FORMULAIRE LOGIN ====================
     
     def _show_login(self):
-        """Affiche le formulaire de connexion"""
+        """Render du formulaire de connexion (état FSM: login)."""
         self._clear_content()
         self._step = "login"
         
@@ -230,7 +249,7 @@ class SecureLoginWindow:
         # Bouton Login (Orange/Coral)
         # Bouton Login (Bleu)
         # Bouton Login (Bleu)
-        # Bouton Login (Bleu - Style amélioré)
+        
         self.login_btn = ctk.CTkButton(
             btn_frame,
             text="SE CONNECTER",
@@ -238,13 +257,13 @@ class SecureLoginWindow:
             fg_color=THEME["login_btn"],
             hover_color=THEME["login_btn_hover"],
             font=ctk.CTkFont(size=14, weight="bold"),
-            corner_radius=8, # Modern rounded rect
+            corner_radius=8, # arrondi grace au radius
             border_width=0,
             command=self._do_login
         )
         self.login_btn.pack(fill="x", pady=(10, 15))
         
-        # Séparateur ou texte
+        
         ctk.CTkLabel(btn_frame, text="Pas encore de compte ?", 
                     font=ctk.CTkFont(size=12), text_color=THEME["text_muted"]).pack(pady=(0, 5))
 
@@ -263,15 +282,13 @@ class SecureLoginWindow:
         )
         self.register_btn.pack(fill="x", pady=(0, 10))
         
-        # Bind Enter
         self.password_entry.bind("<Return>", lambda e: self._do_login())
         self.email_entry.bind("<Return>", lambda e: self.password_entry.focus())
         
-        # Focus sur identifiant
         self.email_entry.focus()
     
     def _do_login(self):
-        """Effectue la connexion"""
+        """Exécute login_step1 en thread séparé pour éviter le freeze UI."""
         if not self.auth:
             self.error_label.configure(text="Service d'authentification non disponible")
             return
@@ -293,10 +310,9 @@ class SecureLoginWindow:
         threading.Thread(target=do_auth, daemon=True).start()
     
     def _handle_login_result(self, success: bool, msg: str, user_id: str, email: str):
-        """Gère le résultat du login"""
+        """Callback thread-safe (via root.after) pour traiter le résultat de login_step1."""
         self.login_btn.configure(state="normal", text="Connexion")
         
-        # Gestion du changement de mot de passe forcé (retourné comme échec avec code spécifique)
         if not success and msg == "MUST_CHANGE_PASSWORD":
             self._user_id = user_id
             self._current_email = email
@@ -324,10 +340,8 @@ class SecureLoginWindow:
             # Login direct
             self._complete_login()
     
-    # ==================== FORMULAIRE VERIFICATION EMAIL ====================
-    
     def _show_email_verification(self):
-        """Affiche le formulaire de vérification par email"""
+        """Render du formulaire OTP (état FSM: email_verification). Code 6 digits, TTL 5min."""
         self._clear_content()
         self._step = "email_verification"
         
@@ -376,7 +390,7 @@ class SecureLoginWindow:
         )
         self.code_entry.pack(fill="x", padx=20)
         
-        # Checkbox confiance
+       
         self.trust_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(
             card,
@@ -390,7 +404,7 @@ class SecureLoginWindow:
             checkbox_width=18
         ).pack(anchor="w", padx=20, pady=(15, 5))
         
-        # Message erreur
+        
         self.error_label = ctk.CTkLabel(
             card,
             text="",
@@ -399,7 +413,7 @@ class SecureLoginWindow:
         )
         self.error_label.pack(pady=(10, 5))
         
-        # Boutons
+        
         btn_frame = ctk.CTkFrame(card, fg_color="transparent")
         btn_frame.pack(fill="x", padx=20, pady=(5, 20))
         
@@ -426,7 +440,7 @@ class SecureLoginWindow:
             command=self._verify_code
         ).pack(side="right", fill="x", expand=True, padx=(10, 0))
         
-        # Retour
+        
         ctk.CTkButton(
             self.content_frame,
             text="← Retour",
@@ -437,12 +451,11 @@ class SecureLoginWindow:
             command=self._show_login
         ).pack(pady=(15, 0))
         
-        # Bind Enter
         self.code_entry.bind("<Return>", lambda e: self._verify_code())
         self.code_entry.focus()
     
     def _resend_code(self):
-        """Renvoie le code"""
+        """Déclenche login_step2_send_code pour régénérer un OTP (invalide le précédent)."""
         if self._user_id and self.auth:
             success, msg = self.auth.login_step2_send_code(self._user_id)
             if success:
@@ -451,7 +464,7 @@ class SecureLoginWindow:
                 self.error_label.configure(text=msg, text_color=THEME["error"])
     
     def _verify_code(self):
-        """Vérifie le code de vérification email"""
+        """Valide l'OTP via login_step2_verify_code. Si trust=True, génère cookie 30j."""
         code = self.code_entry.get().strip()
         
         if not code or len(code) != 6 or not code.isdigit():
@@ -466,36 +479,34 @@ class SecureLoginWindow:
         else:
             self.error_label.configure(text=msg, text_color=THEME["error"])
     
-    # ==================== COMPLETE LOGIN ====================
     
     def _complete_login(self, skip_password_check: bool = False):
-        """Finalise la connexion"""
+        """Finalise la session: génère token, met à jour last_login, appelle on_success."""
         success, msg, user = self.auth.complete_login(self._user_id)
         
         if not success:
-            # Créer un label d'erreur si nécessaire
+            
             if not hasattr(self, 'error_label') or self.error_label is None:
                 print(f"[!] Erreur login: {msg}")
             else:
                 self.error_label.configure(text=msg)
             return
         
-        # Changement de mot de passe requis ? (sauf si on vient de le changer)
+        
         if not skip_password_check and user.get("must_change_password"):
             self._show_change_password()
             return
         
-        # Succès !
+        
         print(f"[+] Connexion réussie: {user.get('username', 'N/A')}")
         if self.on_success:
             self.on_success(user)
         self.root.quit()
         self.root.destroy()
     
-    # ==================== CHANGE PASSWORD ====================
     
     def _show_change_password(self):
-        """Formulaire de changement de mot de passe"""
+        """Render du formulaire de changement MDP forcé (must_change_password=True)."""
         self._clear_content()
         self._step = "change_password"
         
@@ -550,7 +561,7 @@ class SecureLoginWindow:
                      command=self._do_change_password).pack(fill="x", padx=20, pady=(5, 20))
     
     def _do_change_password(self):
-        """Change le mot de passe"""
+        """Valide et enregistre le nouveau MDP via force_change_password (bcrypt re-hash)."""
         new_pass = self.new_pass_entry.get()
         confirm = self.confirm_pass_entry.get()
         
@@ -565,15 +576,15 @@ class SecureLoginWindow:
         success, msg = self.auth.force_change_password(self._user_id, new_pass)
         
         if success:
-            # Skip la vérification de must_change_password car on vient de le changer
+            #evite de reverifier
             self._complete_login(skip_password_check=True)
         else:
             self.error_label.configure(text=msg)
     
-    # ==================== FORGOT PASSWORD ====================
+    
     
     def _show_forgot(self):
-        """Formulaire mot de passe oublié"""
+        """Render du formulaire de récupération MDP (état FSM: forgot)."""
         self._clear_content()
         self._step = "forgot"
         
@@ -629,7 +640,7 @@ class SecureLoginWindow:
         ).pack(pady=(15, 0))
     
     def _do_forgot(self):
-        """Envoie le mot de passe temporaire"""
+        """Appelle forgot_password: génère MDP temporaire + envoi SMTP/TLS."""
         email = self.forgot_email_entry.get().strip()
         
         if not email:
@@ -643,14 +654,12 @@ class SecureLoginWindow:
         else:
             self.forgot_message.configure(text=msg, text_color=THEME["error"])
     
-    # ==================== REGISTER ====================
     
     def _show_register(self):
-        """Formulaire d'inscription"""
+        """Render du formulaire d'inscription (état FSM: register). Crée un ticket pending."""
         self._clear_content()
         self._step = "register"
         
-        # Ajuster la taille de la fenêtre
         self.root.geometry("420x600")
         
         ctk.CTkLabel(
@@ -667,25 +676,21 @@ class SecureLoginWindow:
             text_color=THEME["warning"]
         ).pack(pady=(0, 15))
         
-        # Card
         card = ctk.CTkFrame(self.content_frame, fg_color=THEME["card"], corner_radius=12)
         card.pack(fill="both", expand=True)
         
-        # Identifiant
         ctk.CTkLabel(card, text="Identifiant", font=ctk.CTkFont(size=11),
                     text_color=THEME["text_secondary"]).pack(anchor="w", padx=20, pady=(20, 5))
         self.reg_username = ctk.CTkEntry(card, height=40, fg_color=THEME["input"],
                                         border_color=THEME["border"], placeholder_text="votre_identifiant")
         self.reg_username.pack(fill="x", padx=20)
         
-        # Email
         ctk.CTkLabel(card, text="Email (pour récupération)", font=ctk.CTkFont(size=11),
                     text_color=THEME["text_secondary"]).pack(anchor="w", padx=20, pady=(15, 5))
         self.reg_email = ctk.CTkEntry(card, height=40, fg_color=THEME["input"],
                                      border_color=THEME["border"], placeholder_text="votre@email.com")
         self.reg_email.pack(fill="x", padx=20)
         
-        # Password
         ctk.CTkLabel(card, text="Mot de passe", font=ctk.CTkFont(size=11),
                     text_color=THEME["text_secondary"]).pack(anchor="w", padx=20, pady=(15, 5))
         self.reg_password = ctk.CTkEntry(card, height=40, fg_color=THEME["input"],
@@ -693,18 +698,15 @@ class SecureLoginWindow:
                                         placeholder_text="Minimum 8 caractères")
         self.reg_password.pack(fill="x", padx=20)
         
-        # Confirm
         ctk.CTkLabel(card, text="Confirmer le mot de passe", font=ctk.CTkFont(size=11),
                     text_color=THEME["text_secondary"]).pack(anchor="w", padx=20, pady=(15, 5))
         self.reg_confirm = ctk.CTkEntry(card, height=40, fg_color=THEME["input"],
                                        border_color=THEME["border"], show="•")
         self.reg_confirm.pack(fill="x", padx=20)
         
-        # Message
         self.reg_message = ctk.CTkLabel(card, text="", font=ctk.CTkFont(size=11), wraplength=300)
         self.reg_message.pack(pady=(15, 5))
         
-        # Bouton Soumettre
         ctk.CTkButton(card, text="Soumettre la demande", height=42, fg_color=THEME["accent"],
                      hover_color=THEME["accent_hover"], font=ctk.CTkFont(size=13, weight="bold"),
                      command=self._do_register).pack(fill="x", padx=20, pady=(5, 20))
@@ -784,9 +786,219 @@ def run_secure_login(on_success: Callable[[Dict], None] = None) -> Optional[Dict
     return user_data[0]
 
 
-# =============================================================================
-# PANNEAU DE GESTION DES TICKETS (pour l'admin)
-# =============================================================================
+
+
+class UserListPanel(ctk.CTkFrame):
+    """Panneau de liste des utilisateurs"""
+    
+    def __init__(self, parent, auth_manager=None, **kwargs):
+        super().__init__(parent, fg_color="transparent", **kwargs)
+        self.auth = auth_manager or (get_secure_auth_manager() if AUTH_AVAILABLE else None)
+        self._build_ui()
+        
+    def _build_ui(self):
+        """Construit l'interface (Tableau style phpMyAdmin)"""
+        # Header (Titre + Refresh)
+        header = ctk.CTkFrame(self, fg_color="transparent")
+        header.pack(fill="x", padx=15, pady=(15, 10))
+        
+        ctk.CTkLabel(
+            header,
+            text="Utilisateurs actifs",
+            font=ctk.CTkFont(size=14, weight="bold"),
+            text_color=THEME["text"]
+        ).pack(side="left")
+        
+        ctk.CTkButton(
+            header,
+            text="Rafraîchir",
+            width=80,
+            height=25,
+            fg_color=THEME["input"],
+            hover_color=THEME["card_hover"],
+            font=ctk.CTkFont(size=11),
+            command=self.refresh
+        ).pack(side="right")
+        
+        # Container avec Scrollbar pour le tableau
+        self.users_scroll = ctk.CTkScrollableFrame(
+            self,
+            fg_color="transparent"
+        )
+        self.users_scroll.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        
+        # Configuration de la grille
+        self.users_scroll.grid_columnconfigure(0, weight=2) # Nom (plus large)
+        self.users_scroll.grid_columnconfigure(1, weight=1) # Rôle
+        self.users_scroll.grid_columnconfigure(2, weight=2) # Nom complet
+        self.users_scroll.grid_columnconfigure(3, weight=2) # Last Login
+        self.users_scroll.grid_columnconfigure(4, weight=1) # Statut
+        self.users_scroll.grid_columnconfigure(5, weight=2) # Actions
+        
+        self.refresh()
+    
+    def refresh(self):
+        """Rafraîchit la liste des utilisateurs"""
+        for widget in self.users_scroll.winfo_children():
+            widget.destroy()
+        
+        # En-têtes (Row 0)
+        headers = ["Identifiant", "Rôle", "Nom complet", "Dernière connexion", "Statut", "Actions"]
+        for i, h in enumerate(headers):
+            # Petit fond pour l'en-tête
+            header_bg = ctk.CTkFrame(self.users_scroll, fg_color=THEME["card"], corner_radius=4, height=35)
+            header_bg.grid(row=0, column=i, padx=1, pady=1, sticky="nsew")
+            
+            ctk.CTkLabel(
+                header_bg, 
+                text=h, 
+                font=ctk.CTkFont(size=11, weight="bold"),
+                text_color=THEME["text_secondary"]
+            ).place(relx=0.5, rely=0.5, anchor="center")
+            
+        if not self.auth:
+            return
+        
+        users = self.auth.get_all_users()
+        
+        for idx, user in enumerate(users, start=1):
+            self._create_user_row(user, idx)
+    
+    def _create_user_row(self, user: Dict, row_idx: int):
+        """Crée une ligne pour un utilisateur (Row Table)"""
+        # Couleur alternée pour la lisibilité
+        bg_color = THEME["input"] if row_idx % 2 == 0 else "transparent"
+        if bg_color == "transparent": bg_color = THEME["bg_secondary"] # Ou un gris très sombre
+        
+        # Créer un fond unique pour la ligne? Difficile avec grid cell par cell.
+        # On met un Frame dans chaque cellule pour "simuler" la ligne ou juste le Label.
+        # Pour faire "propre", on met un Frame par cellule qui remplit tout.
+        
+        # 0. Username
+        cell0 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
+        cell0.grid(row=row_idx, column=0, sticky="nsew", padx=1, pady=1)
+        ctk.CTkLabel(cell0, text=f"@{user.get('username', 'N/A')}", font=ctk.CTkFont(size=12, weight="bold")).pack(expand=True, pady=8)
+        
+        # 1. Role
+        cell1 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
+        cell1.grid(row=row_idx, column=1, sticky="nsew", padx=1, pady=1)
+        role = user.get('role', 'user')
+        role_color = THEME["warning"] if role == "admin" else THEME["text"]
+        ctk.CTkLabel(cell1, text=role, text_color=role_color, font=ctk.CTkFont(size=11)).pack(expand=True)
+        
+        # 2. Full Name
+        cell2 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
+        cell2.grid(row=row_idx, column=2, sticky="nsew", padx=1, pady=1)
+        full_name = f"{user.get('first_name', '')} {user.get('last_name', '')}"
+        ctk.CTkLabel(cell2, text=full_name, font=ctk.CTkFont(size=11)).pack(expand=True)
+        
+        # 3. Last Login
+        cell3 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
+        cell3.grid(row=row_idx, column=3, sticky="nsew", padx=1, pady=1)
+        # Convertir en string avant de manipuler.
+        last_login = str(user.get('last_login') or "Jamais")
+        if len(last_login) > 16: last_login = last_login[:16].replace('T', ' ')
+        ctk.CTkLabel(cell3, text=last_login, font=ctk.CTkFont(size=11), text_color=THEME["text_muted"]).pack(expand=True)
+        
+        # 4. Status
+        cell4 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
+        cell4.grid(row=row_idx, column=4, sticky="nsew", padx=1, pady=1)
+        status = user.get('status', 'active')
+        status_text = "Actif" if status == 'active' else "Bloqué"
+        status_color = THEME["success"] if status == 'active' else THEME["error"]
+        ctk.CTkLabel(cell4, text=status_text, text_color=status_color, font=ctk.CTkFont(size=11, weight="bold")).pack(expand=True)
+        
+        # 5. Actions
+        cell5 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
+        cell5.grid(row=row_idx, column=5, sticky="nsew", padx=1, pady=1)
+        
+        current_id = None
+        if self.auth and self.auth.current_user:
+            current_id = self.auth.current_user.get('id')
+            
+        if user['id'] != current_id:
+            # Block/Unblock
+            is_active = (status == 'active')
+            act_text = "Bloquer" if is_active else "Débloquer"
+            act_color = THEME["text_muted"] if is_active else THEME["success"]
+            
+            ctk.CTkButton(
+                cell5, 
+                text=act_text,
+                width=60, 
+                height=22,
+                font=ctk.CTkFont(size=10),
+                fg_color="transparent",
+                border_width=1,
+                border_color=act_color,
+                text_color=act_color,
+                hover_color=THEME.get("bg_hover", "#21262d"),
+                command=lambda u=user: self._toggle_status(u)
+            ).pack(side="left", padx=5, expand=True)
+            
+            # Supprimer
+            ctk.CTkButton(
+                cell5, 
+                text="Supprimer",
+                width=60, 
+                height=22,
+                font=ctk.CTkFont(size=10),
+                fg_color="transparent",
+                border_width=1,
+                border_color=THEME["error"],
+                text_color=THEME["error"],
+                hover_color=THEME.get("bg_hover", "#21262d"),
+                command=lambda u=user: self._delete_user(u)
+            ).pack(side="left", padx=5, expand=True)
+    
+    def _toggle_status(self, user: Dict):
+        """Active/Désactive un utilisateur"""
+        if not self.auth: return
+        
+        new_status = 'disabled' if user.get('status') == 'active' else 'active'
+        success, msg = self.auth.update_user(user['id'], status=new_status)
+        
+        if success:
+            print(f"[+] Status {user['username']} -> {new_status}")
+            self.refresh()
+        else:
+            print(f"[!] Erreur: {msg}")
+            
+    def _delete_user(self, user: Dict):
+        """Supprime un utilisateur avec confirmation"""
+        if not self.auth: return
+        
+        # Petit dialog de confirmation rapide
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Confirmation")
+        dialog.geometry("300x150")
+        dialog.transient(self.winfo_toplevel())
+        
+        # Center
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() - 300) // 2
+        y = (dialog.winfo_screenheight() - 150) // 2
+        dialog.geometry(f"+{x}+{y}")
+        
+        ctk.CTkLabel(dialog, text=f"Supprimer @{user['username']} ?", 
+                    font=ctk.CTkFont(weight="bold")).pack(pady=20)
+                    
+        btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+        btn_frame.pack(pady=10)
+        
+        def do_delete():
+            success, msg = self.auth.delete_user(user['id'])
+            if success:
+                print(f"[+] Utilisateur supprimé: {user['username']}")
+                self.refresh()
+            else:
+                print(f"[!] Erreur suppression: {msg}")
+            dialog.destroy()
+            
+        ctk.CTkButton(btn_frame, text="Oui, supprimer", fg_color=THEME["error"], 
+                     width=100, command=do_delete).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame, text="Annuler", fg_color=THEME["input"], 
+                     width=100, command=dialog.destroy).pack(side="right", padx=5)
 
 class TicketManagementPanel(ctk.CTkFrame):
     """Panneau de gestion des demandes d'inscription"""
@@ -1057,218 +1269,6 @@ class TicketManagementPanel(ctk.CTkFrame):
         ).pack(side="right")
 
 
-
-class UserListPanel(ctk.CTkFrame):
-    """Panneau de liste des utilisateurs"""
-    
-    def __init__(self, parent, auth_manager=None, **kwargs):
-        super().__init__(parent, fg_color="transparent", **kwargs)
-        self.auth = auth_manager or (get_secure_auth_manager() if AUTH_AVAILABLE else None)
-        self._build_ui()
-        
-    def _build_ui(self):
-        """Construit l'interface (Tableau style phpMyAdmin)"""
-        # Header (Titre + Refresh)
-        header = ctk.CTkFrame(self, fg_color="transparent")
-        header.pack(fill="x", padx=15, pady=(15, 10))
-        
-        ctk.CTkLabel(
-            header,
-            text="Utilisateurs actifs",
-            font=ctk.CTkFont(size=14, weight="bold"),
-            text_color=THEME["text"]
-        ).pack(side="left")
-        
-        ctk.CTkButton(
-            header,
-            text="Rafraîchir",
-            width=80,
-            height=25,
-            fg_color=THEME["input"],
-            hover_color=THEME["card_hover"],
-            font=ctk.CTkFont(size=11),
-            command=self.refresh
-        ).pack(side="right")
-        
-        # Container avec Scrollbar pour le tableau
-        self.users_scroll = ctk.CTkScrollableFrame(
-            self,
-            fg_color="transparent"
-        )
-        self.users_scroll.pack(fill="both", expand=True, padx=10, pady=(0, 10))
-        
-        # Configuration de la grille
-        self.users_scroll.grid_columnconfigure(0, weight=2) # Nom (plus large)
-        self.users_scroll.grid_columnconfigure(1, weight=1) # Rôle
-        self.users_scroll.grid_columnconfigure(2, weight=2) # Nom complet
-        self.users_scroll.grid_columnconfigure(3, weight=2) # Last Login
-        self.users_scroll.grid_columnconfigure(4, weight=1) # Statut
-        self.users_scroll.grid_columnconfigure(5, weight=2) # Actions
-        
-        self.refresh()
-    
-    def refresh(self):
-        """Rafraîchit la liste des utilisateurs"""
-        for widget in self.users_scroll.winfo_children():
-            widget.destroy()
-        
-        # En-têtes (Row 0)
-        headers = ["Identifiant", "Rôle", "Nom complet", "Dernière connexion", "Statut", "Actions"]
-        for i, h in enumerate(headers):
-            # Petit fond pour l'en-tête
-            header_bg = ctk.CTkFrame(self.users_scroll, fg_color=THEME["card"], corner_radius=4, height=35)
-            header_bg.grid(row=0, column=i, padx=1, pady=1, sticky="nsew")
-            
-            ctk.CTkLabel(
-                header_bg, 
-                text=h, 
-                font=ctk.CTkFont(size=11, weight="bold"),
-                text_color=THEME["text_secondary"]
-            ).place(relx=0.5, rely=0.5, anchor="center")
-            
-        if not self.auth:
-            return
-        
-        users = self.auth.get_all_users()
-        
-        for idx, user in enumerate(users, start=1):
-            self._create_user_row(user, idx)
-    
-    def _create_user_row(self, user: Dict, row_idx: int):
-        """Crée une ligne pour un utilisateur (Row Table)"""
-        # Couleur alternée pour la lisibilité
-        bg_color = THEME["input"] if row_idx % 2 == 0 else "transparent"
-        if bg_color == "transparent": bg_color = THEME["bg_secondary"] # Ou un gris très sombre
-        
-        # Créer un fond unique pour la ligne? Difficile avec grid cell par cell.
-        # On met un Frame dans chaque cellule pour "simuler" la ligne ou juste le Label.
-        # Pour faire "propre", on met un Frame par cellule qui remplit tout.
-        
-        # 0. Username
-        cell0 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
-        cell0.grid(row=row_idx, column=0, sticky="nsew", padx=1, pady=1)
-        ctk.CTkLabel(cell0, text=f"@{user.get('username', 'N/A')}", font=ctk.CTkFont(size=12, weight="bold")).pack(expand=True, pady=8)
-        
-        # 1. Role
-        cell1 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
-        cell1.grid(row=row_idx, column=1, sticky="nsew", padx=1, pady=1)
-        role = user.get('role', 'user')
-        role_color = THEME["warning"] if role == "admin" else THEME["text"]
-        ctk.CTkLabel(cell1, text=role, text_color=role_color, font=ctk.CTkFont(size=11)).pack(expand=True)
-        
-        # 2. Full Name
-        cell2 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
-        cell2.grid(row=row_idx, column=2, sticky="nsew", padx=1, pady=1)
-        full_name = f"{user.get('first_name', '')} {user.get('last_name', '')}"
-        ctk.CTkLabel(cell2, text=full_name, font=ctk.CTkFont(size=11)).pack(expand=True)
-        
-        # 3. Last Login
-        cell3 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
-        cell3.grid(row=row_idx, column=3, sticky="nsew", padx=1, pady=1)
-        # Convertir en string avant de manipuler.
-        last_login = str(user.get('last_login') or "Jamais")
-        if len(last_login) > 16: last_login = last_login[:16].replace('T', ' ')
-        ctk.CTkLabel(cell3, text=last_login, font=ctk.CTkFont(size=11), text_color=THEME["text_muted"]).pack(expand=True)
-        
-        # 4. Status
-        cell4 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
-        cell4.grid(row=row_idx, column=4, sticky="nsew", padx=1, pady=1)
-        status = user.get('status', 'active')
-        status_text = "Actif" if status == 'active' else "Bloqué"
-        status_color = THEME["success"] if status == 'active' else THEME["error"]
-        ctk.CTkLabel(cell4, text=status_text, text_color=status_color, font=ctk.CTkFont(size=11, weight="bold")).pack(expand=True)
-        
-        # 5. Actions
-        cell5 = ctk.CTkFrame(self.users_scroll, fg_color=bg_color, corner_radius=0)
-        cell5.grid(row=row_idx, column=5, sticky="nsew", padx=1, pady=1)
-        
-        current_id = None
-        if self.auth and self.auth.current_user:
-            current_id = self.auth.current_user.get('id')
-            
-        if user['id'] != current_id:
-            # Block/Unblock
-            is_active = (status == 'active')
-            act_text = "Bloquer" if is_active else "Débloquer"
-            act_color = THEME["text_muted"] if is_active else THEME["success"]
-            
-            ctk.CTkButton(
-                cell5, 
-                text=act_text,
-                width=60, 
-                height=22,
-                font=ctk.CTkFont(size=10),
-                fg_color="transparent",
-                border_width=1,
-                border_color=act_color,
-                text_color=act_color,
-                hover_color=THEME.get("bg_hover", "#21262d"),
-                command=lambda u=user: self._toggle_status(u)
-            ).pack(side="left", padx=5, expand=True)
-            
-            # Supprimer
-            ctk.CTkButton(
-                cell5, 
-                text="Supprimer",
-                width=60, 
-                height=22,
-                font=ctk.CTkFont(size=10),
-                fg_color="transparent",
-                border_width=1,
-                border_color=THEME["error"],
-                text_color=THEME["error"],
-                hover_color=THEME.get("bg_hover", "#21262d"),
-                command=lambda u=user: self._delete_user(u)
-            ).pack(side="left", padx=5, expand=True)
-    
-    def _toggle_status(self, user: Dict):
-        """Active/Désactive un utilisateur"""
-        if not self.auth: return
-        
-        new_status = 'disabled' if user.get('status') == 'active' else 'active'
-        success, msg = self.auth.update_user(user['id'], status=new_status)
-        
-        if success:
-            print(f"[+] Status {user['username']} -> {new_status}")
-            self.refresh()
-        else:
-            print(f"[!] Erreur: {msg}")
-            
-    def _delete_user(self, user: Dict):
-        """Supprime un utilisateur avec confirmation"""
-        if not self.auth: return
-        
-        # Petit dialog de confirmation rapide
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Confirmation")
-        dialog.geometry("300x150")
-        dialog.transient(self.winfo_toplevel())
-        
-        # Center
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() - 300) // 2
-        y = (dialog.winfo_screenheight() - 150) // 2
-        dialog.geometry(f"+{x}+{y}")
-        
-        ctk.CTkLabel(dialog, text=f"Supprimer @{user['username']} ?", 
-                    font=ctk.CTkFont(weight="bold")).pack(pady=20)
-                    
-        btn_frame = ctk.CTkFrame(dialog, fg_color="transparent")
-        btn_frame.pack(pady=10)
-        
-        def do_delete():
-            success, msg = self.auth.delete_user(user['id'])
-            if success:
-                print(f"[+] Utilisateur supprimé: {user['username']}")
-                self.refresh()
-            else:
-                print(f"[!] Erreur suppression: {msg}")
-            dialog.destroy()
-            
-        ctk.CTkButton(btn_frame, text="Oui, supprimer", fg_color=THEME["error"], 
-                     width=100, command=do_delete).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Annuler", fg_color=THEME["input"], 
-                     width=100, command=dialog.destroy).pack(side="right", padx=5)
 
 
 class SecureUserManagementPanel(ctk.CTkFrame):
