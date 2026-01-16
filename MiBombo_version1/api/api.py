@@ -1270,7 +1270,7 @@ def create_app(enable_auth=True):
         
        
         try:
-             template_path = os.path.join(ROOT_DIR, "templates", "api_docs.html")
+             template_path = os.path.join(os.path.dirname(ROOT_DIR), "templates", "api_docs.html")
              with open(template_path, "r", encoding="utf-8") as f:
                  template_content = f.read()
              return render_template_string(template_content, version=API_VERSION, endpoints=endpoints, 
