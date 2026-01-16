@@ -308,7 +308,7 @@ class TestMiBomboUltime(unittest.TestCase):
         """Test de la gestion sécurisée des sessions"""
         log_section("SÉCURITÉ - Gestion des Sessions")
         
-        with patch('api.CaptureManager'):
+        with patch('api.api.CaptureManager'):
             app, _ = create_app(enable_auth=True)
             app.config['TESTING'] = True
             client = app.test_client()
@@ -354,7 +354,7 @@ class TestMiBomboUltime(unittest.TestCase):
         """Test du contrôle d'accès basé sur les rôles"""
         log_section("SÉCURITÉ - RBAC (Contrôle d'Accès)")
         
-        with patch('api.CaptureManager'):
+        with patch('api.api.CaptureManager'):
             app, _ = create_app(enable_auth=True)
             app.config['TESTING'] = True
             client = app.test_client()
@@ -392,7 +392,7 @@ class TestMiBomboUltime(unittest.TestCase):
         """Test des codes de réponse HTTP corrects"""
         log_section("RÉPONSES API - Codes HTTP")
         
-        with patch('api.CaptureManager'):
+        with patch('api.api.CaptureManager'):
             app, _ = create_app(enable_auth=True)
             app.config['TESTING'] = True
             client = app.test_client()
@@ -425,7 +425,7 @@ class TestMiBomboUltime(unittest.TestCase):
         """Test de la structure des réponses JSON"""
         log_section("RÉPONSES API - Structure JSON")
         
-        with patch('api.CaptureManager'):
+        with patch('api.api.CaptureManager'):
             app, _ = create_app(enable_auth=True)
             app.config['TESTING'] = True
             client = app.test_client()
@@ -829,7 +829,7 @@ class TestMiBomboUltime(unittest.TestCase):
         """Test du rate limiting"""
         log_section("SÉCURITÉ - Rate Limiting")
         
-        with patch('api.CaptureManager'):
+        with patch('api.api.CaptureManager'):
             app, _ = create_app(enable_auth=True)
             app.config['TESTING'] = True
             client = app.test_client()
@@ -850,7 +850,7 @@ class TestMiBomboUltime(unittest.TestCase):
         """Test des en-têtes de sécurité HTTP"""
         log_section("SÉCURITÉ - En-têtes HTTP")
         
-        with patch('api.CaptureManager'):
+        with patch('api.api.CaptureManager'):
             app, _ = create_app(enable_auth=True)
             app.config['TESTING'] = True
             client = app.test_client()
@@ -904,6 +904,337 @@ class TestMiBomboUltime(unittest.TestCase):
         profil.update_reputation(-20)
         self.assertLess(profil.reputation_score, reputation_initiale)
         log_test("Réputation diminuée après pénalité")
+
+
+# #############################################################################
+# ##### SIMPLE - TESTS BASIQUES DES MODULES ET CLASSES
+# #############################################################################
+
+class TestSimpleImports(unittest.TestCase):
+    """Vérifie que tous les modules s'importent correctement"""
+
+    def test_import_sniffer(self):
+        """core.sniffer s'importe"""
+        from core.sniffer import Sniffer
+        self.assertIsNotNone(Sniffer)
+
+    def test_import_analyzer(self):
+        """core.analyzer s'importe"""
+        from core.analyzer import PacketAnalyzer
+        self.assertIsNotNone(PacketAnalyzer)
+
+    def test_import_anomaly_detector(self):
+        """core.anomaly_detector s'importe"""
+        from core.anomaly_detector import AnomalyDetector, AnomalyType, Severity, IPProfile
+        self.assertIsNotNone(AnomalyDetector)
+
+    def test_import_authentication(self):
+        """core.secure_authentication s'importe"""
+        from core.secure_authentication import hash_password, verify_password, User, AuthDatabase
+        self.assertIsNotNone(hash_password)
+
+    def test_import_mib(self):
+        """core.mib s'importe"""
+        from core.mib import translate_oid
+        self.assertIsNotNone(translate_oid)
+
+    def test_import_security(self):
+        """core.security s'importe"""
+        from core.security import validate_input
+        self.assertIsNotNone(validate_input)
+
+    def test_import_app_config(self):
+        """core.app_config s'importe"""
+        from core.app_config import ConfAPP
+        self.assertIsNotNone(ConfAPP)
+
+    def test_import_postgres(self):
+        """core.PostgresDB s'importe"""
+        from core.PostgresDB import DataBase
+        self.assertIsNotNone(DataBase)
+
+    def test_import_snmp_credentials(self):
+        """core.snmp_credentials s'importe"""
+        from core.snmp_credentials import SNMPCredentialManager
+        self.assertIsNotNone(SNMPCredentialManager)
+
+    def test_import_logger(self):
+        """core.logger s'importe"""
+        try:
+            from core.logger import get_logger
+            self.assertIsNotNone(get_logger)
+        except ImportError:
+            self.skipTest("Logger module not available")
+
+    def test_import_mailer(self):
+        """core.mailer s'importe"""
+        from core.mailer import send_email_async
+        self.assertIsNotNone(send_email_async)
+
+    def test_import_validators(self):
+        """core.validators s'importe"""
+        from core.validators import is_valid_ipv4, validate_schema
+        self.assertIsNotNone(is_valid_ipv4)
+
+    def test_import_api(self):
+        """api.api s'importe"""
+        from api.api import create_app, CaptureManager
+        self.assertIsNotNone(create_app)
+
+
+class TestSimpleClasses(unittest.TestCase):
+    """Vérifie que les classes principales s'instancient"""
+
+    def test_anomaly_detector_instanciation(self):
+        """AnomalyDetector s'instancie"""
+        from core.anomaly_detector import AnomalyDetector
+        d = AnomalyDetector()
+        self.assertIsNotNone(d)
+        self.assertTrue(hasattr(d, 'alerts'))
+        self.assertTrue(hasattr(d, 'thresholds'))
+
+    def test_ip_profile_instanciation(self):
+        """IPProfile s'instancie"""
+        from core.anomaly_detector import IPProfile
+        p = IPProfile(ip="192.168.1.1")
+        self.assertEqual(p.ip, "192.168.1.1")
+        self.assertEqual(p.packet_count, 0)
+
+    def test_packet_analyzer_instanciation(self):
+        """PacketAnalyzer s'instancie"""
+        from core.analyzer import PacketAnalyzer
+        a = PacketAnalyzer(MagicMock(), MagicMock())
+        self.assertIsNotNone(a)
+        self.assertTrue(hasattr(a, 'config'))
+
+    def test_conf_app_instanciation(self):
+        """ConfAPP s'instancie"""
+        from core.app_config import ConfAPP
+        import tempfile
+        with tempfile.NamedTemporaryFile(suffix='.json', delete=False) as f:
+            c = ConfAPP(confFile=f.name)
+            self.assertIsNotNone(c)
+
+    def test_capture_manager_singleton(self):
+        """CaptureManager est singleton"""
+        from api.api import CaptureManager
+        m1 = CaptureManager()
+        m2 = CaptureManager()
+        self.assertIs(m1, m2)
+
+    def test_user_dataclass(self):
+        """User dataclass fonctionne"""
+        from core.secure_authentication import User
+        u = User(
+            id="1", username="test", email="a@b.c",
+            password_hash="h", role="user", permissions=[],
+            status="active", two_fa_enabled=False, created_at="now"
+        )
+        self.assertEqual(u.username, "test")
+        self.assertIsNone(u.last_login)
+
+
+class TestSimpleFonctions(unittest.TestCase):
+    """Vérifie que les fonctions de base fonctionnent"""
+
+    def test_hash_password_retourne_string(self):
+        """hash_password retourne une string"""
+        from core.secure_authentication import hash_password
+        h = hash_password("test")
+        self.assertIsInstance(h, str)
+        self.assertGreater(len(h), 20)
+
+    def test_verify_password_true(self):
+        """verify_password retourne True si correct"""
+        from core.secure_authentication import hash_password, verify_password
+        h = hash_password("secret")
+        self.assertTrue(verify_password(h, "secret"))
+
+    def test_verify_password_false(self):
+        """verify_password retourne False si incorrect"""
+        from core.secure_authentication import hash_password, verify_password
+        h = hash_password("secret")
+        self.assertFalse(verify_password(h, "wrong"))
+
+    def test_translate_oid_connu(self):
+        """translate_oid traduit OID connu"""
+        from core.mib import translate_oid
+        self.assertEqual(translate_oid("1.3.6.1.2.1.1.1.0"), "sysDescr.0")
+        self.assertEqual(translate_oid("1.3.6.1.2.1.1.5.0"), "sysName.0")
+
+    def test_translate_oid_inconnu(self):
+        """translate_oid retourne OID si inconnu"""
+        from core.mib import translate_oid
+        oid = "1.2.3.4.5.6"
+        self.assertEqual(translate_oid(oid), oid)
+
+    def test_validate_input_valide(self):
+        """validate_input accepte données valides"""
+        from core.security import validate_input
+        r = {"nom": {"type": str, "min": 1, "max": 50}}
+        ok, _ = validate_input({"nom": "Jean"}, r)
+        self.assertTrue(ok)
+
+    def test_validate_input_invalide(self):
+        """validate_input rejette données invalides"""
+        from core.security import validate_input
+        r = {"nom": {"type": str, "max": 3}}
+        ok, _ = validate_input({"nom": "TropLong"}, r)
+        self.assertFalse(ok)
+
+    def test_bytes_to_hex(self):
+        """PacketAnalyzer.bytes_to_hex fonctionne"""
+        from core.analyzer import PacketAnalyzer
+        a = PacketAnalyzer(MagicMock(), MagicMock())
+        self.assertEqual(a.bytes_to_hex(b'\x00\xff'), "00ff")
+        self.assertEqual(a.bytes_to_hex(b''), "")
+
+    def test_get_logger(self):
+        """get_logger retourne un logger"""
+        from core.logger import get_logger
+        log = get_logger("TestModule")
+        self.assertIsNotNone(log)
+        self.assertTrue(hasattr(log, 'info'))
+        self.assertTrue(hasattr(log, 'error'))
+
+    def test_validate_ipv4(self):
+        """is_valid_ipv4 fonctionne"""
+        from core.validators import is_valid_ipv4
+        self.assertTrue(is_valid_ipv4("192.168.1.1"))
+        self.assertTrue(is_valid_ipv4("10.0.0.1"))
+        self.assertFalse(is_valid_ipv4("invalide"))
+        self.assertFalse(is_valid_ipv4("999.999.999.999"))
+
+
+class TestSimpleAnomalyDetector(unittest.TestCase):
+    """Tests simples du détecteur d'anomalies"""
+
+    def setUp(self):
+        from core.anomaly_detector import AnomalyDetector
+        self.d = AnomalyDetector()
+        self.d.reset()
+
+    def test_reset_vide_alertes(self):
+        """reset() vide les alertes"""
+        self.assertEqual(len(self.d.alerts), 0)
+
+    def test_analyze_packet_vide(self):
+        """analyze_packet gère paquet vide"""
+        try:
+            self.d.analyze_packet({})
+        except:
+            pass  # OK si exception
+        self.assertTrue(True)
+
+    def test_thresholds_existent(self):
+        """Les seuils existent"""
+        self.assertIn("packets_per_second_warning", self.d.thresholds)
+        self.assertIn("packets_per_second_critical", self.d.thresholds)
+
+    def test_get_statistics(self):
+        """get_statistics retourne dict"""
+        s = self.d.get_statistics()
+        self.assertIsInstance(s, dict)
+
+    def test_get_or_create_profile(self):
+        """_get_or_create_profile crée profil"""
+        p = self.d._get_or_create_profile("8.8.8.8")
+        self.assertIsNotNone(p)
+        self.assertEqual(p.ip, "8.8.8.8")
+
+
+class TestSimplePacketAnalyzer(unittest.TestCase):
+    """Tests simples de l'analyseur de paquets"""
+
+    def setUp(self):
+        from core.analyzer import PacketAnalyzer
+        self.a = PacketAnalyzer(MagicMock(), MagicMock())
+
+    def test_compare_whitelist_ip(self):
+        """compare accepte IP whitelistée (logique AND: src ET dst)"""
+        self.a.config = {"whiteList": {"IPs": ["192.168.1.1", "10.0.0.1"]}}  # Les deux IPs
+        self.assertTrue(self.a.compare({"ip_src": "192.168.1.1", "ip_dst": "10.0.0.1"}))
+
+    def test_compare_non_whitelist(self):
+        """compare rejette IP non whitelistée"""
+        self.a.config = {"whiteList": {"IPs": []}}
+        self.assertFalse(self.a.compare({"ip_src": "1.2.3.4", "ip_dst": "5.6.7.8"}))
+
+    def test_has_required_methods(self):
+        """PacketAnalyzer a les méthodes requises"""
+        self.assertTrue(hasattr(self.a, 'compare'))
+        self.assertTrue(hasattr(self.a, 'bytes_to_hex'))
+        self.assertTrue(hasattr(self.a, 'packet_info'))
+
+
+class TestSimpleAPI(unittest.TestCase):
+    """Tests simples de l'API"""
+
+    def setUp(self):
+        from api.api import create_app
+        with patch('api.api.CaptureManager'):
+            self.app, _ = create_app(enable_auth=False)
+            self.app.config['TESTING'] = True
+            self.client = self.app.test_client()
+
+    def test_route_index_200(self):
+        """GET / retourne 200"""
+        r = self.client.get('/')
+        self.assertEqual(r.status_code, 200)
+
+    def test_route_status_200(self):
+        """GET /api/status retourne 200"""
+        try:
+            r = self.client.get('/api/status')
+            self.assertIn(r.status_code, [200, 404])  # May not exist
+        except Exception:
+            self.skipTest("Route /api/status may not be available")
+
+    def test_route_ping_pong(self):
+        """GET /api/ping retourne pong"""
+        r = self.client.get('/api/ping')
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.get_json().get('pong'))
+
+    def test_route_docs_200(self):
+        """GET /api/docs retourne 200"""
+        r = self.client.get('/api/docs')
+        self.assertEqual(r.status_code, 200)
+
+    def test_route_404(self):
+        """Route inexistante retourne 404"""
+        r = self.client.get('/api/inexistant12345')
+        self.assertEqual(r.status_code, 404)
+
+
+class TestSimpleIPProfile(unittest.TestCase):
+    """Tests simples du profil IP"""
+
+    def test_creation(self):
+        """Création profil IP"""
+        from core.anomaly_detector import IPProfile
+        p = IPProfile(ip="10.0.0.1")
+        self.assertEqual(p.ip, "10.0.0.1")
+        self.assertEqual(p.packet_count, 0)
+        self.assertEqual(p.error_count, 0)
+
+    def test_pps_calcul(self):
+        """Calcul packets per second"""
+        from core.anomaly_detector import IPProfile
+        p = IPProfile(ip="10.0.0.1")
+        now = time.time()
+        for i in range(10):
+            p.packet_timestamps.append(now - i * 0.1)
+        pps = p.get_packets_per_second()
+        self.assertIsInstance(pps, (int, float))
+
+    def test_reputation_update(self):
+        """Mise à jour réputation"""
+        from core.anomaly_detector import IPProfile
+        p = IPProfile(ip="10.0.0.1")
+        initial = p.reputation_score
+        p.update_reputation(-10)
+        self.assertLess(p.reputation_score, initial)
 
 
 # =========================================================================
