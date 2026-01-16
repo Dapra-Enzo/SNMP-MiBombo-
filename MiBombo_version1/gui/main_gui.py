@@ -271,7 +271,6 @@ FONTS = {
 ctk.set_appearance_mode("light")
 
 
-# ───────────────────── Choix des widgets graphiques ───────────────────
 
 
 class GraphiqueTemps(tk.Frame):
@@ -665,7 +664,7 @@ class TableauBordAPI(ctk.CTkFrame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, fg_color=THEME["bg_main"], **kwargs)
         
-        # Detect LAN IP
+      
         try:
             import socket
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -682,22 +681,22 @@ class TableauBordAPI(ctk.CTkFrame):
         self.after(1000, self._poll_stats_queue)
     
     def _build(self):
-        # Scrollable container for all content
+        
         self._scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self._scroll.pack(fill="both", expand=True, padx=5, pady=5)
         
-        # Build Dashboard section
+       
         self._build_dashboard(self._scroll)
         
-        # Separator
+        
         sep = ctk.CTkFrame(self._scroll, fg_color=THEME["grid"], height=2)
         sep.pack(fill="x", padx=20, pady=20)
         
-        # Build Tester section (below dashboard)
+       
         self._build_tester(self._scroll)
 
     def _build_dashboard(self, parent):
-        # 1. Header Pro
+        
         header = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10, height=80)
         header.pack(fill="x", padx=10, pady=10)
         
@@ -705,13 +704,13 @@ class TableauBordAPI(ctk.CTkFrame):
                     font=ctk.CTkFont(size=22, weight="bold"),
                     text_color=THEME["accent"]).pack(side="left", padx=20, pady=15)
                     
-        # Status Badge
+        
         self._status_badge = ctk.CTkLabel(header, text="● EN LIGNE", 
                                         font=ctk.CTkFont(size=12, weight="bold"),
                                         text_color=THEME["success"])
         self._status_badge.pack(side="left", padx=10)
         
-        # Link
+        
         link_frame = ctk.CTkFrame(header, fg_color="transparent")
         link_frame.pack(side="right", padx=20)
         ctk.CTkLabel(link_frame, text="Endpoint:", text_color=THEME["text_muted"]).pack(side="left", padx=5)
@@ -742,12 +741,12 @@ class TableauBordAPI(ctk.CTkFrame):
             val_lbl.pack(pady=(0,12))
             self._cards[key] = val_lbl
 
-        # 3. Security & Docs Row
+        
         row_frame = ctk.CTkFrame(parent, fg_color="transparent")
         row_frame.pack(fill="x", padx=5, pady=5)
         row_frame.grid_columnconfigure((0,1), weight=1)
         
-        # Gauche: Security
+        
         sec_frame = ctk.CTkFrame(row_frame, fg_color=THEME["bg_card"], corner_radius=10)
         sec_frame.grid(row=0, column=0, sticky="nsew", padx=8, pady=8)
         
@@ -760,7 +759,7 @@ class TableauBordAPI(ctk.CTkFrame):
             l.pack(padx=20, pady=4, fill="x")
             self._sec_labels[feat] = l
 
-        # Droite: Docs
+        
         doc_frame = ctk.CTkFrame(row_frame, fg_color=THEME["bg_card"], corner_radius=10)
         doc_frame.grid(row=0, column=1, sticky="nsew", padx=8, pady=8)
         
@@ -782,7 +781,7 @@ class TableauBordAPI(ctk.CTkFrame):
             user = os.environ.get('SUDO_USER')
             if user:
                 try:
-                    # Try to run as the original user
+                    
                     cmd = ["sudo", "-u", user, "xdg-open", url]
                     subprocess.Popen(cmd)
                     return
@@ -798,7 +797,7 @@ class TableauBordAPI(ctk.CTkFrame):
                         text_color=THEME["error"]).pack(pady=50)
             return
         
-        # Section Title
+      
         title_frame = ctk.CTkFrame(parent, fg_color="transparent")
         title_frame.pack(fill="x", padx=10, pady=(5, 10))
         ctk.CTkLabel(title_frame, text="🔧 Testeur d'API REST", 
@@ -808,11 +807,11 @@ class TableauBordAPI(ctk.CTkFrame):
                     font=ctk.CTkFont(size=12),
                     text_color=THEME["text_muted"]).pack(side="left", padx=15)
         
-        # Request Form Card
+       
         header = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=10)
         header.pack(fill="x", padx=10, pady=5)
         
-        # URL Row
+       
         url_frame = ctk.CTkFrame(header, fg_color="transparent")
         url_frame.pack(fill="x", padx=15, pady=12)
         
@@ -821,7 +820,7 @@ class TableauBordAPI(ctk.CTkFrame):
         self._url_entry.insert(0, self._base_url)
         self._url_entry.pack(side="left", padx=5, fill="x", expand=True)
         
-        # Requête
+       
         req_frame = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=8)
         req_frame.pack(fill="x", padx=15, pady=(0, 10))
         
@@ -841,7 +840,7 @@ class TableauBordAPI(ctk.CTkFrame):
                      fg_color=THEME["accent"], hover_color=THEME["accent_hover"],
                      width=100, height=32).pack(side="left", padx=5)
         
-        # Réponse
+       
         resp_frame = ctk.CTkFrame(parent, fg_color=THEME["bg_card"], corner_radius=8)
         resp_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
         
@@ -855,12 +854,12 @@ class TableauBordAPI(ctk.CTkFrame):
         """Poll stats from API periodically"""
         if not self.winfo_exists(): return
         
-        # Import SSL configuration
+       
         from core.ssl_config import SSL_VERIFY
         
         def fetch():
             try:
-                # ✅ SSL verification enabled with MiBombo CA or system bundle
+                
                 r = requests.get(f"{self._base_url}/api/stats", verify=SSL_VERIFY, timeout=2)
                 if r.status_code == 200:
                     data = r.json().get("api_usage", {})
@@ -869,7 +868,7 @@ class TableauBordAPI(ctk.CTkFrame):
                 pass
             
         Thread(target=fetch, daemon=True).start()
-        # Schedule next run from main thread
+       
         self.after(5000, self._start_refresh_loop)
 
     def _poll_stats_queue(self):
@@ -896,7 +895,7 @@ class TableauBordAPI(ctk.CTkFrame):
         lat = data.get("avg_latency_ms", 0)
         self._cards["avg_latency"].configure(text=f"{lat}ms")
     
-    # ... (Méthodes réutilisées de TableauBordAPI)
+    
     def _set_endpoint(self, ep):
         self._endpoint_entry.delete(0, "end")
         self._endpoint_entry.insert(0, ep)
@@ -1152,7 +1151,7 @@ class TableauProfilsIP(ctk.CTkFrame):
     def __init__(self, parent, **kwargs):
         super().__init__(parent, fg_color=THEME["bg_card"], corner_radius=8, **kwargs)
         self._profiles = []
-        self._profile_rows = {}  # IP -> widgets de la ligne
+        self._profile_rows = {}  
         self._build()
     
     def _build(self):
@@ -1225,13 +1224,11 @@ class TableauProfilsIP(ctk.CTkFrame):
                     text_color=rep_color)
         rep_label.pack(side="left", padx=6)
         
-        # Paquets
         pkt_label = ctk.CTkLabel(row, text=str(profile.get("packet_count", 0)), width=80,
                     font=ctk.CTkFont(size=12),
                     text_color=THEME["text_secondary"])
         pkt_label.pack(side="left", padx=6)
         
-        # Erreurs
         errors = profile.get("error_count", 0)
         err_color = THEME["error"] if errors > 5 else THEME["text_secondary"]
         err_label = ctk.CTkLabel(row, text=str(errors), width=70,
@@ -1239,21 +1236,21 @@ class TableauProfilsIP(ctk.CTkFrame):
                     text_color=err_color)
         err_label.pack(side="left", padx=6)
         
-        # PPS
+        
         pps = profile.get("packets_per_second", 0)
         pps_label = ctk.CTkLabel(row, text=f"{pps:.1f}", width=60,
                     font=ctk.CTkFont(size=12),
                     text_color=THEME["text_secondary"])
         pps_label.pack(side="left", padx=6)
         
-        # Status
+        
         status_text, status_color = self._get_status(profile)
         status_label = ctk.CTkLabel(row, text=status_text, width=100,
                     font=ctk.CTkFont(size=12),
                     text_color=status_color)
         status_label.pack(side="left", padx=6)
         
-        # Stocker les références pour mise à jour
+        
         self._profile_rows[ip] = {
             "row": row,
             "rep_label": rep_label,
@@ -1341,54 +1338,54 @@ class AnalyseurBaseline:
             self.PERIOD_WEEKEND: {"pps": deque(maxlen=window_size * 10), "errors": deque(maxlen=window_size * 10)},
         }
         
-        # Baselines par période
+        
         self._baselines = {
             self.PERIOD_DAY: {"pps": 0.0, "errors": 0.0, "std_pps": 0.0, "std_errors": 0.0, "samples": 0},
             self.PERIOD_NIGHT: {"pps": 0.0, "errors": 0.0, "std_pps": 0.0, "std_errors": 0.0, "samples": 0},
             self.PERIOD_WEEKEND: {"pps": 0.0, "errors": 0.0, "std_pps": 0.0, "std_errors": 0.0, "samples": 0},
         }
         
-        # Seuils dynamiques par période
+        
         self._thresholds = {
             self.PERIOD_DAY: {"pps": 0.0, "errors": 0.0},
             self.PERIOD_NIGHT: {"pps": 0.0, "errors": 0.0},
             self.PERIOD_WEEKEND: {"pps": 0.0, "errors": 0.0},
         }
         
-        # Période courante
+        
         self._current_period = self._get_period()
         
-        # Historique global (compatibilité)
+        
         self._pps_history = deque(maxlen=window_size * 2)
         self._error_history = deque(maxlen=window_size * 2)
         
-        # Baselines calculées (période courante - pour compatibilité)
+        
         self._baseline_pps = 0.0
         self._baseline_errors = 0.0
         self._std_pps = 0.0
         self._std_errors = 0.0
         
-        # Seuils dynamiques (période courante)
+        
         self._threshold_pps = 0.0
         self._threshold_errors = 0.0
         
-        # Stats
+        
         self._total_samples = 0
         self._alerts_generated = 0
         self._last_alert_time = 0
-        self._alert_cooldown = 5  # Secondes entre alertes du même type
+        self._alert_cooldown = 5  
         
-        # Alertes actives
+        
         self.alerts = []
         
-        # État de l'apprentissage par période
+        
         self._learning_status = {
             self.PERIOD_DAY: {"is_learning": True, "complete": False},
             self.PERIOD_NIGHT: {"is_learning": True, "complete": False},
             self.PERIOD_WEEKEND: {"is_learning": True, "complete": False},
         }
         
-        # Compatibilité
+        
         self._is_learning = True
         self._learning_complete = False
         
@@ -1431,12 +1428,12 @@ class AnalyseurBaseline:
             timestamp = time.time()
         
         with self._lock:
-            # Historique global (compatibilité)
+            
             self._pps_history.append((timestamp, pps))
             self._error_history.append((timestamp, errors))
             self._total_samples += 1
             
-            # === STOCKAGE PAR PÉRIODE ===
+            
             period = self._get_period(timestamp)
             self._current_period = period
             
@@ -1444,15 +1441,16 @@ class AnalyseurBaseline:
             self._histories[period]["errors"].append((timestamp, errors))
             self._baselines[period]["samples"] += 1
             
-            # Recalculer les baselines (global + période courante)
+            
             self._compute_baselines()
             self._compute_period_baselines(period)
     
     def _compute_baselines(self):
-        """Calcule les baselines (moyenne et écart-type)"""
+        """Calcule les baselines (moyenne et écart-type)
+        avec une technique de moyenne mobile et écart-type"""
         now = time.time()
         
-        # Filtrer les échantillons dans la fenêtre
+        
         recent_pps = [v for t, v in self._pps_history if now - t <= self.window_size]
         recent_errors = [v for t, v in self._error_history if now - t <= self.window_size]
         
@@ -1460,11 +1458,11 @@ class AnalyseurBaseline:
             self._is_learning = False
             self._learning_complete = True
             
-            # Moyenne
+            
             self._baseline_pps = sum(recent_pps) / len(recent_pps)
             self._baseline_errors = sum(recent_errors) / len(recent_errors) if recent_errors else 0
             
-            # Écart-type
+            
             if len(recent_pps) > 1:
                 variance_pps = sum((x - self._baseline_pps) ** 2 for x in recent_pps) / len(recent_pps)
                 self._std_pps = variance_pps ** 0.5
@@ -1473,8 +1471,7 @@ class AnalyseurBaseline:
                 variance_errors = sum((x - self._baseline_errors) ** 2 for x in recent_errors) / len(recent_errors)
                 self._std_errors = variance_errors ** 0.5
             
-            # Seuils dynamiques = baseline + (threshold_pct% de la baseline)
-            # Ou baseline + 2*std si plus restrictif
+            
             self._threshold_pps = max(
                 self._baseline_pps * (1 + self.threshold_pct / 100),
                 self._baseline_pps + 2 * self._std_pps
@@ -1489,7 +1486,7 @@ class AnalyseurBaseline:
         now = time.time()
         history = self._histories[period]
         
-        # Filtrer les échantillons récents (fenêtre * 10 pour avoir assez d'historique)
+        
         recent_pps = [v for t, v in history["pps"] if now - t <= self.window_size * 5]
         recent_errors = [v for t, v in history["errors"] if now - t <= self.window_size * 5]
         
@@ -1497,7 +1494,6 @@ class AnalyseurBaseline:
             self._learning_status[period]["is_learning"] = False
             self._learning_status[period]["complete"] = True
             
-            # Moyenne et écart-type pour cette période
             baseline_pps = sum(recent_pps) / len(recent_pps)
             baseline_errors = sum(recent_errors) / len(recent_errors) if recent_errors else 0
             
@@ -1512,13 +1508,11 @@ class AnalyseurBaseline:
                 variance_errors = sum((x - baseline_errors) ** 2 for x in recent_errors) / len(recent_errors)
                 std_errors = variance_errors ** 0.5
             
-            # Stocker les baselines de cette période
             self._baselines[period]["pps"] = baseline_pps
             self._baselines[period]["errors"] = baseline_errors
             self._baselines[period]["std_pps"] = std_pps
             self._baselines[period]["std_errors"] = std_errors
             
-            # Calculer les seuils de cette période
             self._thresholds[period]["pps"] = max(
                 baseline_pps * (1 + self.threshold_pct / 100),
                 baseline_pps + 2 * std_pps
@@ -1563,7 +1557,6 @@ class AnalyseurBaseline:
             if self._is_learning:
                 return alerts
             
-            # Vérifier dépassement PPS
             if pps > self._threshold_pps and self._threshold_pps > 0:
                 if now - self._last_alert_time >= self._alert_cooldown:
                     deviation_pct = ((pps - self._baseline_pps) / self._baseline_pps * 100) if self._baseline_pps > 0 else 0
@@ -1586,7 +1579,6 @@ class AnalyseurBaseline:
                     self._alerts_generated += 1
                     self._last_alert_time = now
             
-            # Vérifier dépassement Erreurs
             if errors > self._threshold_errors and self._threshold_errors > 0:
                 if now - self._last_alert_time >= self._alert_cooldown:
                     deviation_pct = ((errors - self._baseline_errors) / self._baseline_errors * 100) if self._baseline_errors > 0 else 100
@@ -1662,7 +1654,7 @@ class PanneauBaseline(ctk.CTkFrame):
         self._build()
     
     def _build(self):
-        # Header
+        
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x", padx=18, pady=15)
         
@@ -1670,18 +1662,18 @@ class PanneauBaseline(ctk.CTkFrame):
                     font=ctk.CTkFont(size=16, weight="bold"),
                     text_color=THEME["accent"]).pack(side="left")
         
-        # Status apprentissage
+        # Statusdu deep learning 
         self._learning_label = ctk.CTkLabel(header, text="🔄 Apprentissage...",
                                            font=ctk.CTkFont(size=12),
                                            text_color=THEME["warning"])
         self._learning_label.pack(side="right")
         
-        # Contenu principal
+        
         content = ctk.CTkFrame(self, fg_color="transparent")
         content.pack(fill="both", expand=True, padx=15, pady=(0, 15))
         content.grid_columnconfigure((0, 1, 2), weight=1)
         
-        # Colonne 1: Baseline PPS
+        # Colonne 1: Baseline des paquets emis par secondes
         col1 = ctk.CTkFrame(content, fg_color=THEME["bg_panel"], corner_radius=8)
         col1.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         
@@ -1703,7 +1695,7 @@ class PanneauBaseline(ctk.CTkFrame):
                                                 text_color=THEME["text_secondary"])
         self._threshold_pps_label.pack(pady=(8, 12))
         
-        # Colonne 2: Baseline Erreurs
+        # Baseline Erreurs
         col2 = ctk.CTkFrame(content, fg_color=THEME["bg_panel"], corner_radius=8)
         col2.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
         
@@ -1725,7 +1717,7 @@ class PanneauBaseline(ctk.CTkFrame):
                                                    text_color=THEME["text_secondary"])
         self._threshold_errors_label.pack(pady=(8, 12))
         
-        # Colonne 3: Contrôles
+        # 
         col3 = ctk.CTkFrame(content, fg_color=THEME["bg_panel"], corner_radius=8)
         col3.grid(row=0, column=2, sticky="nsew", padx=5, pady=5)
         
@@ -1733,7 +1725,7 @@ class PanneauBaseline(ctk.CTkFrame):
                     font=ctk.CTkFont(size=13, weight="bold"),
                     text_color=THEME["text_primary"]).pack(pady=(12, 10))
         
-        # Slider pour le seuil
+        # 
         ctk.CTkLabel(col3, text="Seuil de dépassement:",
                     font=ctk.CTkFont(size=11),
                     text_color=THEME["text_secondary"]).pack()
@@ -1755,7 +1747,7 @@ class PanneauBaseline(ctk.CTkFrame):
                                                   text_color=THEME["accent"], width=50)
         self._threshold_value_label.pack(side="right", padx=(10, 0))
         
-        # Bouton reset
+        # Bouton qui permet de reset
         ctk.CTkButton(col3, text="🔄 Réinitialiser", 
                      command=self._reset_baseline,
                      fg_color=THEME["bg_input"],
@@ -1763,7 +1755,7 @@ class PanneauBaseline(ctk.CTkFrame):
                      font=ctk.CTkFont(size=11),
                      height=30).pack(pady=(10, 12))
         
-        # Stats
+        # Statistiques
         stats_frame = ctk.CTkFrame(self, fg_color=THEME["bg_panel"], corner_radius=6)
         stats_frame.pack(fill="x", padx=15, pady=(0, 15))
         
@@ -1785,7 +1777,7 @@ class PanneauBaseline(ctk.CTkFrame):
         """Met à jour l'affichage avec les données actuelles"""
         status = self._analyzer.get_status()
         
-        # Status apprentissage
+        
         if status["is_learning"]:
             progress = status["learning_progress"]
             self._learning_label.configure(
@@ -1798,11 +1790,11 @@ class PanneauBaseline(ctk.CTkFrame):
                 text_color=THEME["success"]
             )
         
-        # Baselines
+        
         self._baseline_pps_label.configure(text=f"{status['baseline_pps']:.1f}")
         self._baseline_errors_label.configure(text=f"{status['baseline_errors']:.1f}")
         
-        # Seuils
+        
         self._threshold_pps_label.configure(
             text=f"Seuil: {status['threshold_pps']:.1f} (±{status['std_pps']:.1f})"
         )
@@ -1810,7 +1802,6 @@ class PanneauBaseline(ctk.CTkFrame):
             text=f"Seuil: {status['threshold_errors']:.1f}"
         )
         
-        # Stats avec période courante
         period_name = self._analyzer.get_period_name()
         self._stats_label.configure(
             text=f"{period_name} | "
@@ -1883,7 +1874,7 @@ class EquipementSNMP:
             "is_agent": self.is_agent,
             "status": self.status,
             "oids_count": len(self.oids_accessed),
-            # Nouveaux champs
+            # Nouveaux champs possible a intégrer notamment le bail de Cisco avec FA0/1 #TODO 
             "is_trusted": self.is_trusted,
             "is_ignored": self.is_ignored,
             "is_blocked": getattr(self, "is_blocked", False),
@@ -1961,7 +1952,7 @@ class GestionnaireEquipements:
         "1.3.6.1.4.1.2021": "Linux UCD-SNMP",
     }
     
-    # Préfixes MAC constructeurs (OUI)
+    # Préfixes MAC constructeurs connu via les ressouce web 
     MAC_VENDORS = {
         "00:00:0c": "Cisco",
         "00:1a:a1": "Cisco",
@@ -1991,14 +1982,14 @@ class GestionnaireEquipements:
                          "set", "setrequest", "bulk", "getbulk", "snmpbulk"}
     
     def __init__(self):
-        self._devices: Dict[str, SNMPDevice] = {}  # IP -> Device
-        self._pending_devices: Dict[str, SNMPDevice] = {}  # Appareils en attente de confirmation
+        self._devices: Dict[str, SNMPDevice] = {}  
+        self._pending_devices: Dict[str, SNMPDevice] = {}  
         self._lock = Lock()
         self._lock = Lock()
-        self._inactive_timeout = 300  # 5 minutes sans activité = inactif
+        self._inactive_timeout = 300 # Delai de temps avant inactivité reglable donc 
         self._data_file = os.path.join(ROOT_DIR, "data", "devices.json")
         
-        # S'assurer que le dossier data existe
+       
         os.makedirs(os.path.dirname(self._data_file), exist_ok=True)
         
     def save_devices(self):
@@ -2010,7 +2001,7 @@ class GestionnaireEquipements:
             with open(self._data_file, 'w') as f:
                 json.dump(data, f, indent=4)
         except Exception as e:
-            pass  # Silencieux - sera corrigé au prochain redémarrage avec bonnes permissions
+            pass 
 
     def load_devices(self):
         """Charge les appareils depuis le disque"""
@@ -2048,24 +2039,23 @@ class GestionnaireEquipements:
             if not ip_src:
                 return
             
-            # Déterminer si c'est un vrai appareil SNMP
+            
             is_agent_response = any(t in pdu_type for t in self.AGENT_PDU_TYPES)
             is_manager_request = any(t in pdu_type for t in self.MANAGER_PDU_TYPES)
-            
-            # Si l'appareil envoie une réponse/trap OU une requête, c'est un vrai appareil
+          
             if is_agent_response or is_manager_request:
-                # Promouvoir de pending vers confirmed si nécessaire
+               
                 if ip_src in self._pending_devices and ip_src not in self._devices:
                     self._devices[ip_src] = self._pending_devices.pop(ip_src)
                 
-                # Créer ou mettre à jour l'appareil confirmé
+              
                 if ip_src not in self._devices:
                     self._devices[ip_src] = EquipementSNMP(ip_src)
                 
                 self._update_device(ip_src, pkt_data, is_agent=is_agent_response, 
                                    is_manager=is_manager_request)
             else:
-                # Paquet inconnu - mettre en pending pour collecter des infos
+               
                 if ip_src not in self._devices:
                     if ip_src not in self._pending_devices:
                         self._pending_devices[ip_src] = EquipementSNMP(ip_src)
@@ -2075,7 +2065,7 @@ class GestionnaireEquipements:
         """Met à jour le nom système d'un appareil (Appellé par SNMP Sender)"""
         with self._lock:
             if ip not in self._devices:
-                 # On crée l'appareil si on a un nom (c'est donc un agent valide)
+               
                  self._devices[ip] = EquipementSNMP(ip)
             
             device = self._devices[ip]
@@ -2103,21 +2093,21 @@ class GestionnaireEquipements:
             device.is_manager = True
             device.request_count += 1
         
-        # Infos de base
+       
         self._update_device_basic(device, pkt_data)
     
     def _update_device_basic(self, device: EquipementSNMP, pkt_data: Dict):
         """Met à jour les infos de base d'un appareil"""
-        # MAC source
+        
         if pkt_data.get("mac_src"):
             device.mac = pkt_data["mac_src"]
             self._detect_vendor_from_mac(device)
         
-        # Ports
+        
         if pkt_data.get("port_src"):
             device.ports.add(pkt_data["port_src"])
         
-        # Version SNMP
+       
         version = str(pkt_data.get("snmp_version", ""))
         if version == "0":
             device.snmp_versions.add("v1")
@@ -2136,7 +2126,7 @@ class GestionnaireEquipements:
         if usm_user and usm_user not in ["", "None", None]:
             device.usm_users.add(str(usm_user))
         
-        # Erreurs
+      
         error_status = pkt_data.get("snmp_error_status")
         if error_status and str(error_status) not in ["0", "None", ""]:
             device.error_count += 1
@@ -2154,7 +2144,7 @@ class GestionnaireEquipements:
             value = oid_entry.get("value", "")
             device.oids_accessed.add(oid)
             
-            # Extraire infos système depuis les réponses
+            
             if value and value not in ["None", "", "b''"]:
                 if self.OID_SYS_DESCR in oid:
                     device.sys_descr = str(value)[:200]
@@ -2169,7 +2159,7 @@ class GestionnaireEquipements:
                     device.sys_object_id = str(value)
                     self._detect_vendor_from_oid(device)
         
-        # Mettre à jour le status
+        
         self._determine_device_status(device)
     
     def _detect_vendor_from_mac(self, device: EquipementSNMP):
@@ -2223,7 +2213,7 @@ class GestionnaireEquipements:
     
     def _determine_device_status(self, device: EquipementSNMP):
         """Détermine le status de l'appareil"""
-        # Status basé sur l'activité
+        
         elapsed = (datetime.now() - device.last_seen).total_seconds()
         if elapsed > self._inactive_timeout:
             device.status = "inactive"
@@ -2235,7 +2225,7 @@ class GestionnaireEquipements:
     def get_all_devices(self) -> List[Dict]:
         """Retourne la liste de tous les appareils confirmés"""
         with self._lock:
-            # Mettre à jour les status
+           
             for device in self._devices.values():
                 self._determine_device_status(device)
             
@@ -2260,12 +2250,12 @@ class GestionnaireEquipements:
             managers = sum(1 for d in self._devices.values() if d.is_manager)
             agents = sum(1 for d in self._devices.values() if d.is_agent)
             
-            # Compter par type
+          
             by_type = {}
             for d in self._devices.values():
                 by_type[d.device_type] = by_type.get(d.device_type, 0) + 1
             
-            # Compter par version SNMP
+           
             by_version = {"v1": 0, "v2c": 0, "v3": 0}
             for d in self._devices.values():
                 for v in d.snmp_versions:
@@ -2290,8 +2280,8 @@ class GestionnaireEquipements:
             if ip in self._devices:
                 self._devices[ip].is_trusted = trusted
                 if trusted:
-                    self._devices[ip].is_ignored = False  # Un appareil trusted n'est pas ignoré
-                    self._devices[ip].is_blocked = False  # Un appareil trusted n'est pas bloqué
+                    self._devices[ip].is_ignored = False 
+                    self._devices[ip].is_blocked = False 
                 return True
         return False
     
@@ -2301,8 +2291,8 @@ class GestionnaireEquipements:
             if ip in self._devices:
                 self._devices[ip].is_ignored = ignored
                 if ignored:
-                    self._devices[ip].is_trusted = False  # Un appareil ignoré n'est pas trusted
-                    self._devices[ip].is_blocked = False  # Un appareil ignoré n'est pas bloqué
+                    self._devices[ip].is_trusted = False 
+                    self._devices[ip].is_blocked = False 
                 return True
         return False
 
@@ -2358,14 +2348,12 @@ class GestionnaireEquipements:
             
             result = []
             for d in self._devices.values():
-                # Filtre ignorés
                 if d.is_ignored and not show_ignored:
                     continue
-                # Filtre bloqués (optionnel, pour l'instant on les montre)
-                # Filtre inactifs
+                
                 if d.status == "inactive" and not show_inactive:
                     continue
-                # Filtre type
+                
                 if device_type and d.device_type != device_type:
                     continue
                 result.append(d.to_dict())
@@ -2416,13 +2404,13 @@ class ListeEquipements(ctk.CTkFrame):
         self._build()
         
     def _build(self):
-        # 1. HEADER STATS
+        
         stats_container = ctk.CTkFrame(self, fg_color=THEME["bg_card"], corner_radius=10)
         stats_container.pack(fill="x", padx=15, pady=(0, 15))
         
         self._create_stats_header(stats_container)
         
-        # 2. ACTIONS BAR (Filtres & Export)
+   
         action_frame = ctk.CTkFrame(self, fg_color="transparent")
         action_frame.pack(fill="x", padx=15, pady=(0, 10))
         
@@ -2433,11 +2421,10 @@ class ListeEquipements(ctk.CTkFrame):
                      font=ctk.CTkFont(size=12, weight="bold"),
                      command=self._export_devices).pack(side="right")
                      
-        # 3. TABLEAU HEADERS
+        
         cols_container = ctk.CTkFrame(self, fg_color=THEME["bg_panel"], corner_radius=6, height=45)
         cols_container.pack(fill="x", padx=15)
         
-        # Grid Config: Icon(40), IP(140), Name(180), Role(100), Trust(100), Status(100), Actions(Expand)
         self.cols_cfg = [(0, 45), (1, 140), (2, 180), (3, 110), (4, 110), (5, 110), (6, 0)]
         
         headers = ["Type", "Adresse IP", "Nom Système", "Rôle", "Confiance", "État", "Actions"]
@@ -2448,16 +2435,16 @@ class ListeEquipements(ctk.CTkFrame):
                         font=ctk.CTkFont(size=12, weight="bold"),
                         text_color=THEME["text_secondary"], anchor="w").grid(row=0, column=col_idx, padx=10, pady=10, sticky="ew")
                         
-        # 4. LISTE SCROLLABLE
+        
         self._list_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self._list_frame.pack(fill="both", expand=True, padx=5, pady=(5, 10))
         
-        # Config grid interne
+        
         for idx, (col_idx, w) in enumerate(self.cols_cfg):
             self._list_frame.grid_columnconfigure(col_idx, weight=1 if col_idx in [2,6] else 0)
 
     def _create_stats_header(self, parent):
-        # Stats simulées pour layout (Sera update par update_stats)
+        
         self._stat_labels = {}
         metrics = [
             ("Total", "total", "#3b82f6"),
@@ -2482,7 +2469,7 @@ class ListeEquipements(ctk.CTkFrame):
     def update_devices(self, devices: List[Dict], whitelist: List[str]):
         """Met à jour la liste et les stats"""
         with self._lock:
-            # Clear old rows
+            
             for widgets in self._rows:
                 for w in widgets: w.destroy()
             self._rows.clear()
@@ -2490,17 +2477,16 @@ class ListeEquipements(ctk.CTkFrame):
             self._whitelist_ips = whitelist
             self._devices = devices
             
-            # Stats Counters
+           
             stats = {k: 0 for k in ["total", "active", "inactive", "trusted", "blocked", "agent", "manager"]}
             stats["total"] = len(devices)
             
             for idx, dev in enumerate(devices):
                 ip = dev.get("ip")
-                is_active = dev.get("status") == "active" # Changed from "online" to "active"
-                is_trusted = dev.get("is_trusted", False) # Use device's trusted status
+                is_active = dev.get("status") == "active" 
+                is_trusted = dev.get("is_trusted", False) 
                 is_blocked = dev.get("is_blocked", False)
                 
-                # Determine role based on is_manager and is_agent
                 role = ""
                 if dev.get("is_manager") and dev.get("is_agent"):
                     role = "Manager/Agent"
@@ -2511,7 +2497,7 @@ class ListeEquipements(ctk.CTkFrame):
                 else:
                     role = "Inconnu"
                 
-                # Update stats
+               
                 stats["active"] += 1 if is_active else 0
                 stats["inactive"] += 1 if not is_active else 0
                 stats["trusted"] += 1 if is_trusted else 0
@@ -2521,32 +2507,31 @@ class ListeEquipements(ctk.CTkFrame):
                 
                 bg_color = THEME["bg_card"] if idx % 2 == 0 else THEME["bg_input"]
                 
-                # ROW WIDGETS
+                
                 row_widgets = []
                 
-                # 0. Icon
+                
                 icon = self.DEVICE_ICONS.get(dev.get("device_type", "unknown"), "❓")
                 l0 = ctk.CTkLabel(self._list_frame, text=icon, width=45, fg_color=bg_color, font=ctk.CTkFont(size=16))
                 l0.grid(row=idx, column=0, sticky="nsew", pady=1, padx=(5,1))
                 row_widgets.append(l0)
                 
-                # 1. IP
+                
                 l1 = ctk.CTkLabel(self._list_frame, text=ip, width=140, fg_color=bg_color, anchor="w", font=ctk.CTkFont(family="monospace"))
                 l1.grid(row=idx, column=1, sticky="nsew", pady=1, padx=1)
                 row_widgets.append(l1)
                 
-                # 2. Name
                 name = dev.get("custom_name") or dev.get("hostname") or dev.get("sys_name") or "Inconnu"
                 l2 = ctk.CTkLabel(self._list_frame, text=name[:25], fg_color=bg_color, anchor="w")
                 l2.grid(row=idx, column=2, sticky="nsew", pady=1, padx=1)
                 row_widgets.append(l2)
                 
-                # 3. Role
+                
                 l3 = ctk.CTkLabel(self._list_frame, text=role, width=110, fg_color=bg_color, anchor="center", text_color=THEME["text_secondary"])
                 l3.grid(row=idx, column=3, sticky="nsew", pady=1, padx=1)
                 row_widgets.append(l3)
                 
-                # 4. Trust
+                
                 if is_blocked:
                     trust_txt = "⛔ BOQUÉ"
                     trust_col = "#ef4444"
@@ -2557,19 +2542,19 @@ class ListeEquipements(ctk.CTkFrame):
                 l4.grid(row=idx, column=4, sticky="nsew", pady=1, padx=1)
                 row_widgets.append(l4)
                 
-                # 5. Status
+                
                 status_txt = "Actif" if is_active else "Inactif"
                 status_col = THEME["success"] if is_active else THEME["text_muted"]
                 l5 = ctk.CTkLabel(self._list_frame, text=status_txt, width=110, fg_color=bg_color, text_color=status_col)
                 l5.grid(row=idx, column=5, sticky="nsew", pady=1, padx=1)
                 row_widgets.append(l5)
                 
-                # 6. Actions Frame
+                
                 act_frame = ctk.CTkFrame(self._list_frame, fg_color=bg_color, corner_radius=0)
                 act_frame.grid(row=idx, column=6, sticky="nsew", pady=1, padx=(1,5))
                 row_widgets.append(act_frame)
                 
-                # Btn Details
+                
                 btn_det = ctk.CTkButton(act_frame, text="🔍 Détails", width=70, height=24,
                                       fg_color=THEME["chart_blue"], font=ctk.CTkFont(size=11),
                                       command=lambda d=dev: self._on_select(d) if self._on_select else None)
@@ -2582,7 +2567,7 @@ class ListeEquipements(ctk.CTkFrame):
                                             command=lambda i=ip: self._on_trust(i) if self._on_trust else None)
                     btn_trust.pack(side="left", padx=2)
                 
-                # Btn Block (if not blocked)
+                
                 if not is_blocked:
                     btn_block = ctk.CTkButton(act_frame, text="⛔ Block", width=70, height=24,
                                             fg_color=THEME["bg_panel"], border_width=1, border_color=THEME["error"],
@@ -2595,13 +2580,12 @@ class ListeEquipements(ctk.CTkFrame):
                 
                 self._rows.append(row_widgets)
 
-            # Update Header Stats
+            
             for key, count in stats.items():
                 if key in self._stat_labels:
                     self._stat_labels[key].configure(text=str(count))
 
     def _export_devices(self):
-        # Fonction d'export à implémenter
         pass
         
 
@@ -3041,13 +3025,13 @@ class ApplicationMiBombo(ctk.CTk):
         self.geometry("1500x900")
         self.configure(fg_color=THEME["bg_main"])
         
-        # Variables
-        self._queue = None # Plus utilisé directement
+        
+        self._queue = None 
         self._stats_queue = Queue()
         self._db = None
         self._config_mgr = None
         
-        # Integration API
+        
         self._capture_mgr = None
         if API_AVAILABLE:
             self._capture_mgr = CaptureManager()
@@ -3065,7 +3049,7 @@ class ApplicationMiBombo(ctk.CTk):
         self._pcap_dir = os.path.join(ROOT_DIR, "captures")
         self._assets_dir = os.path.join(ROOT_DIR, "assets")
         
-        # Charger l'icône de l'application
+       
         try:
             icon_path = os.path.join(self._assets_dir, "logo.png")
             if os.path.exists(icon_path):
@@ -3085,20 +3069,20 @@ class ApplicationMiBombo(ctk.CTk):
         self._pps_history = deque(maxlen=60)
         self._threat_history = deque(maxlen=60)
         
-        # Système de décroissance du niveau de menace
-        self._current_threat_level = 0.0  # Niveau actuel (0-100)
-        self._last_alert_time = time.time()  # Temps dernière alerte
-        self._last_alert_count_for_decay = 0  # Pour détecter nouvelles alertes
-        self._threat_decay_rate = 5.0  # Décroissance par seconde (%)
         
-        # Analyseur de Baseline
+        self._current_threat_level = 0.0  
+        self._last_alert_time = time.time() 
+        self._last_alert_count_for_decay = 0 
+        self._threat_decay_rate = 5.0 
+        
+        
         self._baseline_analyzer = AnalyseurBaseline(
-            window_size=60,      # Fenêtre de 60 secondes
-            threshold_pct=50.0,  # Alerte si dépassement de 50%
-            min_samples=10       # Minimum 10 échantillons avant analyse
+            window_size=60,      
+            threshold_pct=50.0,  
+            min_samples=10       
         )
         
-        # Gestionnaire d'appareils
+        
         self._device_manager = GestionnaireEquipements()
         
         # === AUTHENTIFICATION ===
@@ -3139,7 +3123,7 @@ class ApplicationMiBombo(ctk.CTk):
             self._status_label.configure(text=f"⚠ Erreur: {e}", text_color=THEME["error"])
 
 
-        # Charger les données persistantes
+        
         try:
             self._device_manager.load_devices()
         except:
@@ -3154,7 +3138,7 @@ class ApplicationMiBombo(ctk.CTk):
         
         try:
             all_pkts = []
-            # On charge un échantillon récent de chaque version
+            
             for table in ["snmp_v3", "snmp_v2", "snmp_v1"]:
                 if not self._db.table_exists(table): continue
                 
@@ -3167,17 +3151,16 @@ class ApplicationMiBombo(ctk.CTk):
                 else:
                     col_names = [c[1] for c in cols_info]
                 
-                # Récupère les 50 derniers (optimisation performance)
                 rows = self._db.getLatest(table, col_names, limit=50)
                 
                 for row in rows:
                     pkt = dict(zip(col_names, row))
                     all_pkts.append(pkt)
             
-            # Tri chronologique (Ancien -> Récent)
+            
             all_pkts.sort(key=lambda x: x.get('time_stamp') or "", reverse=False)
             
-            # Garder les 500 derniers max (limite affichage widget)
+            
             if len(all_pkts) > 500:
                 all_pkts = all_pkts[-500:]
                 
@@ -3213,7 +3196,7 @@ class ApplicationMiBombo(ctk.CTk):
                 self._stop_event.set()
                 self._is_capturing = False
                 
-                # Sauvegarder les données
+                # Sauvegarder
                 self._device_manager.save_devices()
                 if self._detector:
                     self._detector.save_stats()
@@ -3226,11 +3209,11 @@ class ApplicationMiBombo(ctk.CTk):
             sys.exit(0)
 
     def _setup_ui(self):
-        self.grid_columnconfigure(1, weight=1)  # Colonne contenu principal
-        self.grid_rowconfigure(0, weight=0)  # Row 0: Header (fixed height)
-        self.grid_rowconfigure(1, weight=1)  # Row 1: Content (expand)
+        self.grid_columnconfigure(1, weight=1)  
+        self.grid_rowconfigure(0, weight=0) 
+        self.grid_rowconfigure(1, weight=1) 
         
-        # ===== HEADER =====
+        
         header = ctk.CTkFrame(self, height=50, fg_color=THEME["bg_panel"], corner_radius=0)
         header.grid(row=0, column=1, sticky="ew")
         header.grid_propagate(False)
@@ -3242,11 +3225,11 @@ class ApplicationMiBombo(ctk.CTk):
                     font=ctk.CTkFont(size=20, weight="bold"),
                     text_color=THEME["accent"]).pack()
         
-        # === CAPTURE CONTROLS (MODERN DESIGN) ===
+        
         capture_control_frame = ctk.CTkFrame(header, fg_color="transparent")
         capture_control_frame.pack(side="left", padx=20)
         
-        # Interface selector (compact)
+        
         interface_frame = ctk.CTkFrame(capture_control_frame, fg_color=THEME["bg_card"],
                                       corner_radius=8, height=36)
         interface_frame.pack(side="left", padx=(0, 8))
@@ -3254,7 +3237,7 @@ class ApplicationMiBombo(ctk.CTk):
         ctk.CTkLabel(interface_frame, text="🌐",
                     font=ctk.CTkFont(size=14)).pack(side="left", padx=(8, 4))
         
-        # Get available interfaces
+        
         try:
             import psutil
             interfaces = list(psutil.net_if_addrs().keys())
@@ -3277,7 +3260,7 @@ class ApplicationMiBombo(ctk.CTk):
             self._header_if_selector.set(interfaces[0])
         self._header_if_selector.pack(side="left", padx=(0, 8), pady=4)
         
-        # Start/Stop buttons (modern toggle style)
+        
         self._start_btn = ctk.CTkButton(
             capture_control_frame,
             text="▶ Démarrer Capture",
@@ -3311,7 +3294,7 @@ class ApplicationMiBombo(ctk.CTk):
                                               text_color=THEME["text_muted"])
         self._capture_indicator.pack(side="left", padx=15)
         
-        # Time label and Clear button (moved to right side of header)
+        
         self._time_label = ctk.CTkLabel(header, text="",
                                        font=ctk.CTkFont(size=11),
                                        text_color=THEME["text_muted"])
@@ -3330,7 +3313,7 @@ class ApplicationMiBombo(ctk.CTk):
             logo_path = os.path.join(self._assets_dir, "logo.png")
             if os.path.exists(logo_path):
                 pil_image = PILImage.open(logo_path)
-                # Plus grand pour la sidebar (Agrandissement demandé)
+                
                 logo_image = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(110, 110))
                 
                 ctk.CTkLabel(logo_frame, text="", image=logo_image).pack(anchor="w", pady=(0, 5))
@@ -3347,11 +3330,11 @@ class ApplicationMiBombo(ctk.CTk):
                     font=ctk.CTkFont(size=11),
                     text_color=THEME["text_secondary"]).pack(anchor="w")
 
-        # --- NOUVEAU PROFIL (Haut de la sidebar) ---
+        
         self._top_user_frame = ctk.CTkFrame(self._sidebar, fg_color="transparent")
         self._top_user_frame.pack(fill="x", padx=15, pady=(0, 20))
         
-        # Avatar / Icône
+        
         ctk.CTkLabel(self._top_user_frame, text="👤", font=ctk.CTkFont(size=24)).pack(side="left", padx=(0, 10))
         
         # Infos
@@ -3398,11 +3381,9 @@ class ApplicationMiBombo(ctk.CTk):
         ]
         
         for tab_id, tab_name in nav_items:
-            # Container pour effet de marge
             btn_container = ctk.CTkFrame(self._sidebar, fg_color="transparent")
             btn_container.pack(fill="x", padx=12, pady=4)
             
-            # Special handling for SNMPv3 button
             if tab_id == "snmpv3_users":
                 btn = ctk.CTkButton(
                     btn_container,
@@ -3467,20 +3448,16 @@ class ApplicationMiBombo(ctk.CTk):
         # Spacer
         ctk.CTkFrame(self._sidebar, fg_color="transparent").pack(fill="both", expand=True)
         
-        # Bouton Déconnexion (Retiré du bas)
-        # ----------------------------------
         
-        # Frame pour le bouton admin (reste en bas, au dessus du logout)
         self._admin_btn_frame.pack(side="bottom", fill="x", padx=12, pady=(0, 5))
         
         # ===== CONTAINER PRINCIPAL =====
         main_container = ctk.CTkFrame(self, fg_color=THEME["bg_main"])
         main_container.grid(row=1, column=1, sticky="nsew")
         
-        # Header du contenu principal (REMOVED - using top header instead)
-        # The capture controls are now in the top header created earlier
         
-        # Add page title to the main header
+        
+        # Titre du main header
         self._page_title = ctk.CTkLabel(header, text="Dashboard",
                                        font=ctk.CTkFont(size=18, weight="bold"),
                                        text_color=THEME["text_primary"])
@@ -3493,7 +3470,6 @@ class ApplicationMiBombo(ctk.CTk):
                      font=ctk.CTkFont(size=11),
                      command=self.clear_all).pack(side="right", padx=5)
         
-        # ===== STATUS BAR =====
         statusbar = ctk.CTkFrame(main_container, height=28, fg_color=THEME["bg_panel"], corner_radius=0)
         statusbar.pack(fill="x", side="bottom")
         
@@ -3559,7 +3535,6 @@ class ApplicationMiBombo(ctk.CTk):
     
     def _switch_tab(self, tab_id: str):
         """Change l'onglet actif."""
-        # Reset tous les boutons
         for btn_id, btn in self._nav_buttons.items():
             btn.configure(
                 fg_color="transparent",
@@ -3572,11 +3547,11 @@ class ApplicationMiBombo(ctk.CTk):
             text_color=THEME["text_primary"]
         )
         
-        # Changer le titre
+        # Ctitre
         titles = {
             "dashboard": "Dashboard",
             "capture": "Capture",
-            "snmp_sender": "Émetteur SNMP",  # NEW
+            "snmp_sender": "Émetteur SNMP",  
             "devices": "Appareils",
             "topology": "Topology Map",
             "behavior": "Analyse Comportementale",
@@ -3591,7 +3566,7 @@ class ApplicationMiBombo(ctk.CTk):
         self._pages[tab_id].tkraise()
         self._current_tab = tab_id
         
-        # Rafraîchir le profil si nécessaire
+        # 
         if tab_id == "profile":
             self._update_profile_visibility()
     
@@ -3814,7 +3789,7 @@ class ApplicationMiBombo(ctk.CTk):
                     try:
                         self._config_mgr._save()
                     except AttributeError:
-                        # Fallback if _save is not accessible or renamed
+                        # Fallback si _save est inaccessible ou renommé
                         pass
                     
                     # Notifier la mise à jour dynamique de l'analyseur
@@ -3922,9 +3897,7 @@ class ApplicationMiBombo(ctk.CTk):
         self._packet_detail = PanneauDetailPaquet(tab, on_trust=self._trust_device_handler, capture_mgr=self._capture_mgr, device_manager=self._device_manager)
         self._packet_detail.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
     
-    # ══════════════════════════════════════════════════════════════════════════
-    # ÉMETTEUR SNMP (NEW)
-    # ══════════════════════════════════════════════════════════════════════════
+   
     
     def _build_snmp_sender_tab(self, tab):
         """Construit l'onglet Émetteur SNMP pour SNMPv2c et SNMPv3"""
@@ -3933,9 +3906,7 @@ class ApplicationMiBombo(ctk.CTk):
         tab.grid_rowconfigure(0, weight=0)  # Header
         tab.grid_rowconfigure(1, weight=1)  # Contenu
         
-        # ═══════════════════════════════════════════════════════════════════════
-        # HEADER
-        # ═══════════════════════════════════════════════════════════════════════
+       
         header = ctk.CTkFrame(tab, fg_color=THEME["bg_card"], corner_radius=12, height=80)
         header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 5))
         header.grid_propagate(False)
@@ -3948,9 +3919,7 @@ class ApplicationMiBombo(ctk.CTk):
                     font=ctk.CTkFont(size=12),
                     text_color=THEME["text_muted"]).pack(side="left", padx=10)
         
-        # ═══════════════════════════════════════════════════════════════════════
-        # PANNEAU GAUCHE: Configuration
-        # ═══════════════════════════════════════════════════════════════════════
+       
         left_panel = ctk.CTkFrame(tab, fg_color=THEME["bg_card"], corner_radius=12)
         left_panel.grid(row=1, column=0, sticky="nsew", padx=(10, 5), pady=5)
         
@@ -4153,13 +4122,11 @@ class ApplicationMiBombo(ctk.CTk):
                                            command=self._send_snmp_request)
         self._snmp_send_btn.pack(fill="x")
         
-        # ═══════════════════════════════════════════════════════════════════════
-        # PANNEAU DROIT: Résultats
-        # ═══════════════════════════════════════════════════════════════════════
+        
         right_panel = ctk.CTkFrame(tab, fg_color=THEME["bg_card"], corner_radius=12)
         right_panel.grid(row=1, column=1, sticky="nsew", padx=(5, 10), pady=5)
         
-        # Header résultats
+        
         result_header = ctk.CTkFrame(right_panel, fg_color="transparent")
         result_header.pack(fill="x", padx=15, pady=(15, 5))
         
@@ -4171,7 +4138,7 @@ class ApplicationMiBombo(ctk.CTk):
                      fg_color=THEME["bg_panel"], hover_color=THEME["bg_hover"],
                      command=self._clear_snmp_results).pack(side="right")
         
-        # Zone de résultats
+        
         self._snmp_results = ctk.CTkTextbox(right_panel, 
                                            fg_color=THEME["bg_panel"],
                                            font=ctk.CTkFont(family="Courier", size=11),
@@ -4361,7 +4328,7 @@ class ApplicationMiBombo(ctk.CTk):
         tab.grid_rowconfigure(0, weight=1)
         
         if not TOPOLOGY_WIDGET_AVAILABLE:
-            # Message si le module n'est pas disponible
+            
             error_frame = ctk.CTkFrame(tab, fg_color=THEME["bg_card"], corner_radius=12)
             error_frame.place(relx=0.5, rely=0.5, anchor="center")
             
@@ -4401,9 +4368,7 @@ class ApplicationMiBombo(ctk.CTk):
         tab.grid_rowconfigure(1, weight=1)  # Main content
         tab.grid_rowconfigure(2, weight=0)  # Footer/Alerts
         
-        # ═══════════════════════════════════════════════════════════════════════
-        # ROW 0: HEADER - Score de Sécurité + Stats Temps Réel
-        # ═══════════════════════════════════════════════════════════════════════
+       
         header = ctk.CTkFrame(tab, fg_color=THEME["bg_card"], corner_radius=12)
         header.grid(row=0, column=0, columnspan=2, sticky="ew", padx=10, pady=(10, 5))
         header.grid_columnconfigure((0, 1, 2, 3, 4), weight=1)
@@ -4416,7 +4381,6 @@ class ApplicationMiBombo(ctk.CTk):
                     font=ctk.CTkFont(size=20, weight="bold"),
                     text_color=THEME["accent"]).pack(side="left")
         
-        # Score de Sécurité (Style Jauge)
         score_frame = ctk.CTkFrame(header, fg_color=THEME["bg_panel"], corner_radius=8)
         score_frame.grid(row=0, column=1, padx=10, pady=10)
         
@@ -4429,7 +4393,6 @@ class ApplicationMiBombo(ctk.CTk):
         ctk.CTkLabel(score_frame, text="Excellente", font=ctk.CTkFont(size=10),
                     text_color=THEME["success"]).pack(pady=(0, 8))
         
-        # Stats Indicateurs
         stats_data = [
             ("🔴 Critiques", "0", "critical_count"),
             ("🟠 Warnings", "0", "warning_count"),
@@ -4450,13 +4413,11 @@ class ApplicationMiBombo(ctk.CTk):
             ctk.CTkLabel(stat_frame, text=label, font=ctk.CTkFont(size=11),
                         text_color=THEME["text_secondary"]).pack()
         
-        # ═══════════════════════════════════════════════════════════════════════
-        # ROW 1 LEFT: Timeline des Menaces
-        # ═══════════════════════════════════════════════════════════════════════
+        
         left_panel = ctk.CTkFrame(tab, fg_color=THEME["bg_card"], corner_radius=12)
         left_panel.grid(row=1, column=0, sticky="nsew", padx=(10, 5), pady=5)
         
-        # Header Timeline
+        
         timeline_header = ctk.CTkFrame(left_panel, fg_color="transparent")
         timeline_header.pack(fill="x", padx=15, pady=(15, 10))
         
@@ -4464,31 +4425,27 @@ class ApplicationMiBombo(ctk.CTk):
                     font=ctk.CTkFont(size=16, weight="bold"),
                     text_color=THEME["text_primary"]).pack(side="left")
         
-        # Bouton Refresh
         ctk.CTkButton(timeline_header, text="⟳", width=30, height=30,
                      fg_color=THEME["bg_panel"], hover_color=THEME["bg_hover"],
                      command=self._refresh_investigation).pack(side="right")
         
-        # Liste Timeline (Scrollable)
+        
         self._timeline_frame = ctk.CTkScrollableFrame(left_panel, 
                                                       fg_color=THEME["bg_panel"],
                                                       corner_radius=8)
         self._timeline_frame.pack(fill="both", expand=True, padx=10, pady=(0, 10))
         
-        # Placeholder
         self._timeline_placeholder = ctk.CTkLabel(self._timeline_frame, 
                     text="En attente d'événements...",
                     font=ctk.CTkFont(size=12),
                     text_color=THEME["text_muted"])
         self._timeline_placeholder.pack(pady=50)
         
-        # ═══════════════════════════════════════════════════════════════════════
-        # ROW 1 RIGHT: Détails & Actions
-        # ═══════════════════════════════════════════════════════════════════════
+        
         right_panel = ctk.CTkFrame(tab, fg_color=THEME["bg_card"], corner_radius=12)
         right_panel.grid(row=1, column=1, sticky="nsew", padx=(5, 10), pady=5)
         
-        # Top Talkers
+        
         ctk.CTkLabel(right_panel, text="🏆 Top Talkers",
                     font=ctk.CTkFont(size=14, weight="bold"),
                     text_color=THEME["text_primary"]).pack(anchor="w", padx=15, pady=(15, 5))
@@ -4504,7 +4461,7 @@ class ApplicationMiBombo(ctk.CTk):
                     text_color=THEME["text_muted"], justify="left")
         self._top_talkers_list.pack(pady=20, padx=10, anchor="w")
         
-        # Distribution Protocoles
+        
         ctk.CTkLabel(right_panel, text="📊 Distribution par Version",
                     font=ctk.CTkFont(size=14, weight="bold"),
                     text_color=THEME["text_primary"]).pack(anchor="w", padx=15, pady=(15, 5))
@@ -4513,7 +4470,7 @@ class ApplicationMiBombo(ctk.CTk):
                                    corner_radius=8)
         proto_frame.pack(fill="x", padx=10, pady=5)
         
-        # Progress bars pour chaque version
+        
         versions = [("SNMPv1", THEME["error"], "_proto_v1"), 
                    ("SNMPv2c", THEME["warning"], "_proto_v2"),
                    ("SNMPv3", THEME["success"], "_proto_v3")]
@@ -4554,9 +4511,7 @@ class ApplicationMiBombo(ctk.CTk):
                      text_color=THEME["text_primary"],
                      command=self._reset_investigation_stats).pack(fill="x", pady=3)
         
-        # ═══════════════════════════════════════════════════════════════════════
-        # ROW 2: Alertes Critiques
-        # ═══════════════════════════════════════════════════════════════════════
+        
         alerts_frame = ctk.CTkFrame(tab, fg_color=THEME["bg_card"], corner_radius=12)
         alerts_frame.grid(row=2, column=0, columnspan=2, sticky="ew", padx=10, pady=(5, 10))
         
@@ -4577,66 +4532,60 @@ class ApplicationMiBombo(ctk.CTk):
                                                         corner_radius=8, height=100)
         self._alerts_list_frame.pack(fill="x", padx=10, pady=(0, 10))
         
-        # Initialize investigation data
         self._investigation_events = []
         self._investigation_stats = {"critical": 0, "warning": 0, "info": 0, "v1": 0, "v2": 0, "v3": 0}
     
     def _refresh_investigation(self):
         """Rafraîchit les données d'investigation"""
-        # Update stats from detector
         if hasattr(self, '_detector') and self._detector:
             alerts = self._detector.alerts
             self._investigation_stats["critical"] = len([a for a in alerts if a.severity == "critical"])
             self._investigation_stats["warning"] = len([a for a in alerts if a.severity in ("warning", "medium")])
             self._investigation_stats["info"] = len([a for a in alerts if a.severity in ("info", "low")])
         
-        # Update labels
         if hasattr(self, '_investigation_critical_count'):
             self._investigation_critical_count.configure(text=str(self._investigation_stats["critical"]))
             self._investigation_warning_count.configure(text=str(self._investigation_stats["warning"]))
             self._investigation_info_count.configure(text=str(self._investigation_stats["info"]))
             
-            # === CALCUL SCORE AVANCÉ ===
-            # Pondération par sévérité
+           
             critical = self._investigation_stats["critical"]
             warning = self._investigation_stats["warning"]
             info = self._investigation_stats["info"]
             
-            # Score de risque (0-100)
-            # CRITICAL = 30 pts, WARNING = 10 pts, INFO = 3 pts
+           
             risk_score = min(100, (critical * 30) + (warning * 10) + (info * 3))
             
-            # Corrélation temporelle: si beaucoup d'alertes récentes, augmenter le risque
+            
             if hasattr(self, '_last_alert_time'):
                 temps_depuis_alerte = time.time() - self._last_alert_time
-                if temps_depuis_alerte < 5:  # Alertes dans les 5 dernières secondes
-                    risk_score = min(100, risk_score * 1.5)  # +50% si alertes récentes
+                if temps_depuis_alerte < 5:  
+                    risk_score = min(100, risk_score * 1.5) 
             
-            # Niveau de menace actuel (du graphique)
+            
             current_threat = getattr(self, '_current_threat_level', 0)
             
-            # Score final combiné (risque + menace actuelle)
             final_score = (risk_score * 0.6) + (current_threat * 0.4)
             
-            # Conversion en note lettre (échelle inversée: 0 = A+, 100 = F)
+            
             if final_score < 5:
                 score, color = "A+", THEME["success"]
             elif final_score < 15:
                 score, color = "A", THEME["success"]
             elif final_score < 30:
-                score, color = "B+", "#22c55e"  # Vert clair
+                score, color = "B+", "#22c55e" 
             elif final_score < 45:
                 score, color = "B", THEME["warning"]
             elif final_score < 60:
-                score, color = "C", "#f97316"  # Orange
+                score, color = "C", "#f97316" 
             elif final_score < 75:
                 score, color = "D", THEME["error"]
             else:
-                score, color = "F", "#dc2626"  # Rouge vif
+                score, color = "F", "#dc2626" 
             
             self._security_score_value.configure(text=score, text_color=color)
             
-            # Synchroniser aussi le label dans la section Rapports
+            
             if hasattr(self, '_security_score_label'):
                 self._security_score_label.configure(text=score, text_color=color)
     
@@ -4646,34 +4595,34 @@ class ApplicationMiBombo(ctk.CTk):
         if not time_str:
             time_str = datetime.datetime.now().strftime("%H:%M:%S")
         
-        # Remove placeholder
+        
         if hasattr(self, '_timeline_placeholder') and self._timeline_placeholder.winfo_exists():
             self._timeline_placeholder.destroy()
         
-        # Create event row
+        
         colors = {"critical": THEME["error"], "warning": THEME["warning"], 
                  "info": THEME["accent"], "success": THEME["success"]}
         
         event_frame = ctk.CTkFrame(self._timeline_frame, fg_color="transparent")
         event_frame.pack(fill="x", pady=2)
         
-        # Time
+        
         ctk.CTkLabel(event_frame, text=time_str, width=60,
                     font=ctk.CTkFont(family="Courier", size=10),
                     text_color=THEME["text_muted"]).pack(side="left", padx=5)
         
-        # Dot indicator
+        
         dot_color = colors.get(event_type, THEME["text_secondary"])
         dot = ctk.CTkFrame(event_frame, width=10, height=10, corner_radius=5, 
                           fg_color=dot_color)
         dot.pack(side="left", padx=5)
         
-        # Message
+        
         ctk.CTkLabel(event_frame, text=message,
                     font=ctk.CTkFont(size=11),
                     text_color=THEME["text_primary"], anchor="w").pack(side="left", fill="x", expand=True)
         
-        # Keep only last 50 events
+        
         self._investigation_events.append((event_type, message, time_str))
         if len(self._investigation_events) > 50:
             self._investigation_events = self._investigation_events[-50:]
@@ -4696,20 +4645,19 @@ class ApplicationMiBombo(ctk.CTk):
     
     def _build_profile_tab(self, tab):
         """Construit l'onglet Profil (Layout: Admin Haut)"""
-        tab.grid_columnconfigure(0, weight=7) # 70% Users
-        tab.grid_columnconfigure(1, weight=3) # 30% Tickets
-        tab.grid_rowconfigure(0, weight=1)    # Haut (100%)
+        tab.grid_columnconfigure(0, weight=7) 
+        tab.grid_columnconfigure(1, weight=3) 
+        tab.grid_rowconfigure(0, weight=1)    
         
-        # Utiliser le nouveau système si disponible
         if SECURE_AUTH_AVAILABLE and UserListPanel:
-            # 1. Liste Utilisateurs (Haut Gauche)
+            
             self._user_list_frame = ctk.CTkFrame(tab, fg_color="transparent")
             self._user_list_frame.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
             
             self._user_list_panel = UserListPanel(self._user_list_frame, auth_manager=get_secure_auth_manager())
             self._user_list_panel.pack(fill="both", expand=True)
 
-            # 2. Demandes Inscription (Haut Droite)
+            
             self._ticket_frame = ctk.CTkFrame(tab, fg_color="transparent")
             self._ticket_frame.grid(row=0, column=1, sticky="nsew", padx=5, pady=5)
             
@@ -4718,24 +4666,24 @@ class ApplicationMiBombo(ctk.CTk):
             
             # (Section Mon Profil supprimée sur demande)
             
-            # Masquer si pas admin
+            
             self._update_secure_profile_visibility()
             return
         
-        # Fallback vers l'ancien système
+        
         if not AUTH_WIDGETS_AVAILABLE:
             ctk.CTkLabel(tab, text="Module d'authentification non disponible",
                         font=ctk.CTkFont(size=14),
                         text_color=THEME["error"]).pack(pady=50)
             return
         
-        # Panneau de profil (gauche)
+        
         self._profile_panel = ProfilePanel(tab, 
                                           auth_manager=self._auth_manager,
                                           on_logout=self._on_logout)
         self._profile_panel.grid(row=0, column=0, sticky="nsew", padx=(5, 3), pady=5)
         
-        # Panneau de gestion utilisateurs (droite) - visible seulement pour admin
+        
         self._user_mgmt_panel = UserManagementPanel(tab, auth_manager=self._auth_manager)
         self._user_mgmt_panel.grid(row=0, column=1, sticky="nsew", padx=(3, 5), pady=5)
         
@@ -4804,12 +4752,12 @@ class ApplicationMiBombo(ctk.CTk):
             role = user.get('role', 'user')
             self._profile_role_label.configure(text=f"Rôle: {role.capitalize()}")
             
-            # Afficher/masquer les panneaux admin
+            
             if hasattr(self, '_user_list_frame') and hasattr(self, '_ticket_frame'):
                 if role == "admin" or "all" in user.get("permissions", []):
                     self._user_list_frame.grid()
                     self._ticket_frame.grid()
-                    # Refresh if possible
+                    
                     if hasattr(self, '_user_list_panel'): self._user_list_panel.refresh()
                     if hasattr(self, '_ticket_panel'): self._ticket_panel.refresh()
                 else:
@@ -4837,11 +4785,11 @@ class ApplicationMiBombo(ctk.CTk):
         self._is_authenticated = False
         self._current_user = None
         
-        # Arrêter la capture si en cours
+        
         if self._is_capturing:
             self.stop_capture()
         
-        # Fermer l'application et afficher le login
+        
         self.destroy()
     
 
@@ -4864,7 +4812,7 @@ class ApplicationMiBombo(ctk.CTk):
         if not hasattr(self, '_tickets_scroll'):
             return
             
-        # Vider la liste
+        
         for widget in self._tickets_scroll.winfo_children():
             widget.destroy()
         
@@ -4921,7 +4869,7 @@ class ApplicationMiBombo(ctk.CTk):
             text_color=THEME["text_muted"]
         ).pack(anchor="w", pady=(2, 0))
         
-        # Boutons
+        # 
         btn_frame = ctk.CTkFrame(card, fg_color="transparent")
         btn_frame.pack(fill="x", padx=12, pady=(0, 10))
         
@@ -4983,7 +4931,7 @@ class ApplicationMiBombo(ctk.CTk):
     
     def _refresh_users(self):
         """Rafraîchit la liste des utilisateurs"""
-        # Vider la liste
+        
         for widget in self._users_scroll.winfo_children():
             widget.destroy()
         
@@ -5014,15 +4962,15 @@ class ApplicationMiBombo(ctk.CTk):
         card = ctk.CTkFrame(self._users_scroll, fg_color=THEME["bg_input"], corner_radius=8)
         card.pack(fill="x", pady=5, padx=5)
         
-        # Couleur selon le rôle
+        
         role_color = THEME["warning"] if user['role'] == 'admin' else THEME["info"]
         status_color = THEME["success"] if user['status'] == 'active' else THEME["error"]
         
-        # Info principale
+        
         info_frame = ctk.CTkFrame(card, fg_color="transparent")
         info_frame.pack(fill="x", padx=12, pady=10)
         
-        # Ligne 1 : Username + Rôle
+        
         line1 = ctk.CTkFrame(info_frame, fg_color="transparent")
         line1.pack(fill="x")
         
@@ -5040,16 +4988,16 @@ class ApplicationMiBombo(ctk.CTk):
             text_color=role_color
         ).pack(side="right")
         
-        # Ligne 2 : Email + Status
+        
         line2 = ctk.CTkFrame(info_frame, fg_color="transparent")
         line2.pack(fill="x", pady=(3, 0))
 
     def _build_documentation_tab(self, parent):
         """Construit l'onglet Documentation."""
-        # Fonction à implémenter
+        
         pass
         
-        # Boutons de gestion
+        
 
     
     def _change_user_role(self, user: Dict, new_role: str):
@@ -5112,12 +5060,12 @@ class ApplicationMiBombo(ctk.CTk):
     def _on_packet_received(self, data: Dict, raw_bytes: bytes = None):
         """Callback appelé par le CaptureManager quand un paquet arrive"""
         # print(f"[GUI DEBUG] Packet received: {data.get('ip_src')} -> {data.get('ip_dst')}")
-        # On utilise after pour thread-safety avec Tkinter
+       
         self.after(0, lambda: self._process_packet_ui(data, raw_bytes))
 
     def _on_alert_received(self, alerts):
         """Callback appelé par le CaptureManager quand une alerte survient"""
-        # alerts peut être une liste ou un seul dict
+      
         alert_list = alerts if isinstance(alerts, list) else [alerts]
         for alert in alert_list:
             self.after(0, lambda a=alert: self._process_alert_ui(a))
@@ -5125,15 +5073,15 @@ class ApplicationMiBombo(ctk.CTk):
     def _process_packet_ui(self, data: Dict, raw_bytes: bytes = None):
         """Mise à jour UI pour un nouveau paquet"""
         try:
-            # 1. Packet List
+            
             if hasattr(self, '_packet_list'):
                 self._packet_list.add_packet(data, raw_bytes)
                 
-            # 2. Topology
+            
             if hasattr(self, '_topology') and self._topology:
                 self._topology.add_packet(data)
                 
-            # 3. Investigation Stats
+            
             if hasattr(self, '_investigation_stats'):
                 version = str(data.get('snmp_version', ''))
                 if '1' in version and '0' not in version:
@@ -5143,12 +5091,13 @@ class ApplicationMiBombo(ctk.CTk):
                 elif '3' in version:
                     self._investigation_stats['v3'] = self._investigation_stats.get('v3', 0) + 1
                 
-                # Update total
+                
                 if hasattr(self, '_investigation_total_packets'):
                     total = sum(self._investigation_stats.values())
                     self._investigation_total_packets.configure(text=str(total))
             
-            # 4. Device Manager (UI only, data is handled by API)
+            
+            
             if hasattr(self, '_device_manager') and self._device_manager:
                 self._device_manager.process_packet(data)
         except Exception:
@@ -5168,11 +5117,11 @@ class ApplicationMiBombo(ctk.CTk):
         if self._is_capturing:
             return
         
-        # Get interface from header selector
+        
         self._interface = self._header_if_selector.get().strip() or "eth0"
         
         try:
-            # Démarrage via API
+            
             result = self._capture_mgr.start(iface=self._interface, filt=self._snmp_filter)
             
             if not result.get("success"):
@@ -5196,12 +5145,11 @@ class ApplicationMiBombo(ctk.CTk):
             self._status_label.configure(text=f"⚠ Erreur: {e}", text_color=THEME["error"])
     
     def _capture_loop(self):
-        # Ancienne boucle de capture supprimée
-        # Tout passe maintenant par les callbacks API (_on_packet_received)
+        
         pass
             
     def _prepare_db_data(self, data):
-        # Déprécié : géré par l'API
+        
         pass
     
     def stop_capture(self):
@@ -5222,15 +5170,15 @@ class ApplicationMiBombo(ctk.CTk):
         if self._capture_mgr:
             self._capture_mgr.clear_data()
             
-        # 2. UI Clear (Local widgets)
-        self._packet_list.clear()
-        self._alert_list.clear() # Assurez-vous que cette méthode existe
         
-        # 3. Stats reset
+        self._packet_list.clear()
+        self._alert_list.clear() 
+        
+        
         self._last_pkt_count = 0
         self._last_error_count = 0
         self._pps = 0
-        self._errors_per_sec = 0  # Important aussi
+        self._errors_per_sec = 0  
         
         if hasattr(self, '_chart_pps'):
             self._chart_pps.clear_data()
@@ -5251,7 +5199,6 @@ class ApplicationMiBombo(ctk.CTk):
         now = datetime.now()
         self._time_label.configure(text=now.strftime("%H:%M:%S"))
         
-        # Calcul PPS
         current_count = len(self._packet_list.packets)
         self._pps = current_count - self._last_pkt_count
         self._last_pkt_count = current_count
@@ -5266,22 +5213,20 @@ class ApplicationMiBombo(ctk.CTk):
         errors_this_sec = errors - self._last_error_count
         self._last_error_count = errors
         
-        # === ANALYSE BASELINE ===
-        # Ajouter l'échantillon à l'analyseur
+        
         self._baseline_analyzer.add_sample(self._pps, errors_this_sec)
         
-        # Vérifier les anomalies de dépassement de seuil
+        
         baseline_alerts = self._baseline_analyzer.check_anomaly(self._pps, errors_this_sec)
         
-        # Afficher les alertes baseline
         for alert in baseline_alerts:
             self._add_baseline_alert(alert)
         
-        # Mettre à jour le panneau baseline
+        
         if hasattr(self, '_baseline_panel'):
             self._baseline_panel.update_display()
         
-        # === FIN ANALYSE BASELINE ===
+        
         
         self._stat_packets.set_value(total)
         self._stat_pps.set_value(int(self._pps))
@@ -5294,20 +5239,19 @@ class ApplicationMiBombo(ctk.CTk):
         alert_count += self._baseline_analyzer._alerts_generated
         self._stat_alerts.set_value(alert_count, THEME["error"] if alert_count > 0 else THEME["text_muted"])
         
-        # Graphiques temps réel
+        
         self._chart_pps.add_point("PPS", self._pps, now)
         
-        # === CALCUL NIVEAU DE MENACE AVEC DÉCROISSANCE ===
+        
         current_alert_count = alert_count
         
-        # Si nouvelles alertes -> augmenter le niveau
         if current_alert_count > self._last_alert_count_for_decay:
             nouvelles_alertes = current_alert_count - self._last_alert_count_for_decay
             self._current_threat_level = min(100, self._current_threat_level + (nouvelles_alertes * 15))
             self._last_alert_time = time.time()
             self._last_alert_count_for_decay = current_alert_count
             
-            # === AJOUTER LES NOUVELLES ALERTES À LA TIMELINE ===
+            
             if self._detector and hasattr(self._detector, 'alerts'):
                 for alert in self._detector.alerts[-nouvelles_alertes:]:
                     self._add_timeline_event(
@@ -5316,32 +5260,32 @@ class ApplicationMiBombo(ctk.CTk):
                         alert.timestamp[-8:] if len(alert.timestamp) >= 8 else alert.timestamp
                     )
         else:
-            # Décroissance progressive si pas de nouvelle alerte
+            
             temps_depuis_alerte = time.time() - self._last_alert_time
-            if temps_depuis_alerte > 2.0:  # Attendre 2 secondes avant décroissance
+            if temps_depuis_alerte > 2.0:  
                 decroissance = (temps_depuis_alerte - 2.0) * self._threat_decay_rate
                 self._current_threat_level = max(0, self._current_threat_level - decroissance * 0.1)
         
         threat = self._current_threat_level
         self._chart_threat.add_point("Threat", threat, now)
         
-        # Mettre à jour les graphiques toutes les 2 secondes
+        
         if now.second % 2 == 0:
             self._chart_pps.update_chart()
             self._chart_threat.update_chart()
         
-        # 0. Top Talkers (Partie NOC) - Mise à jour toutes les 5 secondes
+        
         if hasattr(self, '_top_talkers_list') and now.second % 5 == 0:
-            # Calcul sur les 500 derniers paquets
+            
             ip_counts = {}
             for p in self._packet_list.packets[-500:]:
                 src = p.get('ip_src', 'Unknown')
                 ip_counts[src] = ip_counts.get(src, 0) + 1
             
-            # Tri et Top 5
+            
             sorted_ips = sorted(ip_counts.items(), key=lambda x: x[1], reverse=True)[:5]
             
-            # Pas de rafraîchissement si pas de changement (opti UI)
+            
             txt = "Top Talkers (last 500 pkts):\n\n"
             if not sorted_ips:
                 txt += "En attente de trafic..."
@@ -5349,40 +5293,37 @@ class ApplicationMiBombo(ctk.CTk):
                 for i, (ip, count) in enumerate(sorted_ips, 1):
                     txt += f"{i}. {ip} : {count} pkts\n"
             
-            # On update brute pour l'instant (Textbox)
             try:
                 self._top_talkers_list.delete("1.0", "end")
                 self._top_talkers_list.insert("1.0", txt)
             except: pass
         
-        # Mise à jour Alertes et Sécurité (Proposition A)
         
-        # 1. Alertes Récentes (Rafraîchissement intelligent)
+        
         if hasattr(self, '_alert_list') and now.second % 2 == 0:
-            # On récupère les alertes les plus récentes
+            
             recent_alerts = []
             if self._detector and hasattr(self._detector, 'alerts'):
                 recent_alerts.extend(self._detector.alerts[-20:])
             
-            # On met à jour seulement si le compte a changé
+            
             current_count = int(self._alert_list._count_label.cget("text"))
             if len(recent_alerts) != current_count:
-                self._alert_list.clear() # Simple approach
-                for alert in reversed(recent_alerts): # Newest first
+                self._alert_list.clear() 
+                for alert in reversed(recent_alerts): 
                     self._alert_list.add_alert(alert)
 
-        # === MISE À JOUR ALERTES RÉCENTES (Page Investigation) ===
         if hasattr(self, '_alerts_list_frame') and now.second % 3 == 0:
-            # Récupérer les 10 dernières alertes
+            
             recent_alerts = []
             if self._detector and hasattr(self._detector, 'alerts'):
                 recent_alerts = list(self._detector.alerts[-10:])
             
-            # Mettre à jour le compteur
+            
             if hasattr(self, '_alerts_count_label'):
                 self._alerts_count_label.configure(text=f"{len(recent_alerts)} alertes")
             
-            # Vider et repeupler la liste (simple mais efficace)
+            
             for widget in self._alerts_list_frame.winfo_children():
                 widget.destroy()
             
@@ -5392,37 +5333,34 @@ class ApplicationMiBombo(ctk.CTk):
                             font=ctk.CTkFont(size=11),
                             text_color=THEME["text_muted"]).pack(pady=20)
             else:
-                for alert in reversed(recent_alerts):  # Newest first
+                for alert in reversed(recent_alerts): 
                     alert_row = ctk.CTkFrame(self._alerts_list_frame, fg_color="transparent")
                     alert_row.pack(fill="x", pady=2)
                     
-                    # Indicateur de sévérité
+                    
                     color = THEME["error"] if alert.severity == "critical" else THEME["warning"]
                     ctk.CTkFrame(alert_row, width=4, height=20, fg_color=color, 
                                 corner_radius=2).pack(side="left", padx=(0, 8))
                     
-                    # Message
                     ctk.CTkLabel(alert_row, text=f"[{alert.anomaly_type}] {alert.message[:40]}...",
                                 font=ctk.CTkFont(size=10),
                                 text_color=THEME["text_primary"]).pack(side="left")
                     
-                    # Timestamp
                     ctk.CTkLabel(alert_row, text=alert.timestamp[-8:],
                                 font=ctk.CTkFont(size=9),
                                 text_color=THEME["text_muted"]).pack(side="right")
 
-        # 2. Stats de Sécurité (Donut)
+        
         if hasattr(self, '_chart_security') and now.second % 4 == 0:
             sec_stats = {"Secured (v3)": 0, "Unsecured (v1/v2)": 0}
             
-            # Source 1: Device Manager (plus précis sur les versions supportées)
+            
             if self._device_manager:
                 d_stats = self._device_manager.get_statistics()
                 v_stats = d_stats.get("by_snmp_version", {})
                 sec_stats["Secured (v3)"] += v_stats.get("v3", 0)
                 sec_stats["Unsecured (v1/v2)"] += v_stats.get("v1", 0) + v_stats.get("v2c", 0)
             
-            # Source 2 (Fallback): Paquets
             if hasattr(self, '_packet_list') and sum(sec_stats.values()) == 0:
                 for p in self._packet_list.packets[-200:]:
                     ver = p.get('version', '')
@@ -5433,21 +5371,17 @@ class ApplicationMiBombo(ctk.CTk):
             
             self._chart_security.update(sec_stats, [THEME["success"], THEME["error"]])
         
-        # Profils IP et réputation - mise à jour toutes les 3 secondes
         if now.second % 3 == 0 and self._detector:
             profiles = self._detector.get_all_profiles()
             
-            # Update IP table si existe (ancien design)
             if hasattr(self, '_ip_table') and self._ip_table:
                 try:
                     self._ip_table.update_profiles(profiles)
                 except:
                     pass
             
-            # Update Top Talkers (nouveau design investigation)
             if hasattr(self, '_top_talkers_list') and profiles:
                 try:
-                    # Trier par nombre de requêtes
                     sorted_ips = sorted(profiles.items(), key=lambda x: x[1].get('request_count', 0), reverse=True)[:5]
                     lines = []
                     for ip, data in sorted_ips:
@@ -5478,11 +5412,9 @@ class ApplicationMiBombo(ctk.CTk):
                     pass
         
         # Updates LISTE DES APPAREILS (Toutes les 2 sec)
-        # === MISE À JOUR DES APPAREILS (Toutes les 5 secondes) ===
         if now.second % 15 == 0:
             if hasattr(self, '_device_list') and self._device_manager:
                 devices = self._device_manager.get_all_devices()
-                # Récupérer whitelist
                 whitelist = []
                 if self._config_mgr and self._config_mgr.config:
                     whitelist = self._config_mgr.config.get("whitelist", {}).get("IPs", [])
@@ -5526,7 +5458,6 @@ class ApplicationMiBombo(ctk.CTk):
             except Exception as e:
                 pass
         
-        # === SAUVEGARDE AUTO DES APPAREILS (toutes les 30 secondes) ===
         if now.second % 30 == 0 and hasattr(self, '_device_manager'):
             try:
                 self._device_manager.save_devices()
@@ -5540,22 +5471,17 @@ class ApplicationMiBombo(ctk.CTk):
         if not hasattr(self, '_baseline_alerts_frame'):
             return
         
-        # Couleur selon sévérité
         color = THEME["error"] if alert["severity"] == "critical" else THEME["warning"]
         
-        # Créer la carte d'alerte
         card = ctk.CTkFrame(self._baseline_alerts_frame, fg_color=THEME["bg_card"], corner_radius=6)
         card.pack(fill="x", pady=3, padx=5)
         
-        # Indicateur
         indicator = ctk.CTkFrame(card, fg_color=color, width=4, corner_radius=2)
         indicator.pack(side="left", fill="y")
         
-        # Contenu
         content = ctk.CTkFrame(card, fg_color="transparent")
         content.pack(fill="x", expand=True, pady=8, padx=10)
         
-        # Header
         header = ctk.CTkFrame(content, fg_color="transparent")
         header.pack(fill="x")
         
@@ -5585,7 +5511,6 @@ class ApplicationMiBombo(ctk.CTk):
         if len(children) > 20:
             children[0].destroy()
         
-        # === AJOUTER À LA TIMELINE D'INVESTIGATION ===
         self._add_timeline_event(alert["severity"], alert["message"], alert["timestamp"][-8:])
     
     def set_authenticated_user(self, user_data: Dict):
@@ -5593,13 +5518,11 @@ class ApplicationMiBombo(ctk.CTk):
         self._is_authenticated = True
         self._current_user = user_data
         
-        # Mettre à jour les indicateurs
         username = user_data.get("username", "?")
         role = user_data.get("role", "?").upper()
         
         self._user_indicator.configure(text=username)
         self._user_role_label.configure(text=role)
-        # Mise à jour du statut utilisateur supprimée
         
         
         # Afficher le bouton Admin si l'utilisateur est admin
@@ -5622,12 +5545,11 @@ class PanneauDetailEquipement(ctk.CTkFrame):
     def __init__(self, parent, device_manager=None, on_action=None, **kwargs):
         super().__init__(parent, fg_color=THEME["bg_card"], corner_radius=8, **kwargs)
         self._device_manager = device_manager
-        self._on_action = on_action  # Callback pour rafraîchir après action
+        self._on_action = on_action  
         self._current_device = None
         self._build()
     
     def _build(self):
-        # Header avec boutons
         header = ctk.CTkFrame(self, fg_color="transparent")
         header.pack(fill="x", padx=15, pady=(12, 8))
         
@@ -5635,7 +5557,6 @@ class PanneauDetailEquipement(ctk.CTkFrame):
                     font=ctk.CTkFont(size=16, weight="bold"),
                     text_color=THEME["text_primary"]).pack(side="left")
         
-        # Boutons d'action
         btn_frame = ctk.CTkFrame(header, fg_color="transparent")
         btn_frame.pack(side="right")
         
@@ -5682,13 +5603,11 @@ class PanneauDetailEquipement(ctk.CTkFrame):
         """Affiche les détails d'un appareil"""
         self._current_device = device
         
-        # Mettre à jour les boutons
         self._update_buttons()
         
         self._text.configure(state="normal")
         self._text.delete("1.0", "end")
         
-        # Déterminer rôle
         roles = []
         if device.get("is_manager"):
             roles.append("Manager (envoie des requêtes)")
@@ -5696,23 +5615,18 @@ class PanneauDetailEquipement(ctk.CTkFrame):
             roles.append("Agent (répond aux requêtes)")
         role_str = " & ".join(roles) if roles else "Non déterminé"
         
-        # Versions SNMP
         versions = device.get("snmp_versions", [])
         versions_str = ", ".join(versions) if versions else "Non détecté"
         
-        # Communities
         communities = device.get("communities", [])
         communities_str = ", ".join(communities) if communities else "N/A"
         
-        # USM Users (v3)
         usm_users = device.get("usm_users", [])
         usm_str = ", ".join(usm_users) if usm_users else "N/A"
         
-        # Ports
         ports = device.get("ports", [])
         ports_str = ", ".join(str(p) for p in sorted(ports)) if ports else "N/A"
         
-        # Status spécial
         is_trusted = device.get("is_trusted", False)
         is_ignored = device.get("is_ignored", False)
         is_blocked = device.get("is_blocked", False)
@@ -5861,7 +5775,7 @@ class DialogueUtilisateursSNMP(ctk.CTkToplevel):
         self.geometry("700x500")
         self.configure(fg_color=THEME["bg_main"])
         
-        # Centrer
+        # Centre la fenetre
         self.transient(parent)
         self.after(100, lambda: self._safe_grab())
         
@@ -5876,7 +5790,7 @@ class DialogueUtilisateursSNMP(ctk.CTkToplevel):
             pass
         
     def _build_ui(self):
-        # Header
+        # Header pour le titre
         header = ctk.CTkFrame(self, height=60, fg_color=THEME["bg_panel"])
         header.pack(fill="x")
         
@@ -5884,11 +5798,11 @@ class DialogueUtilisateursSNMP(ctk.CTkToplevel):
                     font=ctk.CTkFont(size=18, weight="bold"),
                     text_color=THEME["text_primary"]).pack(side="left", padx=20, pady=15)
         
-        # Liste (Treeview Custom)
+        
         list_container = ctk.CTkFrame(self, fg_color=THEME["bg_card"])
         list_container.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Scrollable Frame pour la liste
+        # Liste scrollable
         self.scroll_list = ctk.CTkScrollableFrame(list_container, fg_color="transparent")
         self.scroll_list.pack(fill="both", expand=True, padx=10, pady=10)
         
@@ -5905,7 +5819,7 @@ class DialogueUtilisateursSNMP(ctk.CTkToplevel):
                      fg_color=THEME["border"], hover_color=THEME["border_light"]).pack(side="right", padx=10)
 
     def _load_users(self):
-        # Clear
+        # Clear de la liste
         for widget in self.scroll_list.winfo_children():
             widget.destroy()
             
@@ -5932,12 +5846,12 @@ class DialogueUtilisateursSNMP(ctk.CTkToplevel):
             ctk.CTkLabel(row, text=user["auth_proto"], width=80, anchor="w").pack(side="left")
             ctk.CTkLabel(row, text=user["priv_proto"], width=80, anchor="w").pack(side="left")
             
-            # Delete button
+            # Bouton supprimer
             ctk.CTkButton(row, text="🗑", width=30, fg_color="transparent", text_color=THEME["error"],
                          hover_color=THEME["bg_input"],
                          command=lambda u=user["username"]: self._delete_user(u)).pack(side="right", padx=10)
             
-            # Edit button (simulé par delete/add pour l'instant pour simplifier)
+            # Bouton modifier
             ctk.CTkButton(row, text="✏", width=30, fg_color="transparent", text_color=THEME["info"],
                          hover_color=THEME["bg_input"],
                          command=lambda u=user: self._edit_user(u)).pack(side="right", padx=0)
@@ -5966,36 +5880,36 @@ class DialogueUtilisateursSNMP(ctk.CTkToplevel):
         
         dialog.after(100, safe_grab)
         
-        # Form
+        # Formulaire ajout/modification
         ctk.CTkLabel(dialog, text=title, font=ctk.CTkFont(size=16, weight="bold")).pack(pady=20)
         
-        # Username
+        # Username  (SecurityName)
         ctk.CTkLabel(dialog, text="Nom d'utilisateur (SecurityName)").pack(anchor="w", padx=20)
         entry_user = ctk.CTkEntry(dialog)
         entry_user.pack(fill="x", padx=20, pady=(0, 10))
         if edit_user:
             entry_user.insert(0, edit_user["username"])
-            entry_user.configure(state="disabled") # On ne change pas l'ID
+            entry_user.configure(state="disabled") 
         
-        # Auth Protocol
+        # Auth Protocol (SHA, MD5, Aucun)
         ctk.CTkLabel(dialog, text="Protocole Authentification").pack(anchor="w", padx=20)
         combo_auth = ctk.CTkComboBox(dialog, values=["SHA", "MD5", "Aucun"])
         combo_auth.pack(fill="x", padx=20, pady=(0, 10))
         if edit_user: combo_auth.set(edit_user["auth_proto"])
         
-        # Auth Key
+        # Auth Key (Password)
         ctk.CTkLabel(dialog, text="Clé d'Authentification (Password)").pack(anchor="w", padx=20)
         entry_auth_key = ctk.CTkEntry(dialog, show="*")
         entry_auth_key.pack(fill="x", padx=20, pady=(0, 10))
         if edit_user and edit_user["auth_key"]: entry_auth_key.insert(0, edit_user["auth_key"])
         
-        # Priv Protocol
+        # Priv Protocol (AES, DES, Aucun)
         ctk.CTkLabel(dialog, text="Protocole Chiffrement (Privacy)").pack(anchor="w", padx=20)
         combo_priv = ctk.CTkComboBox(dialog, values=["AES", "DES", "Aucun"])
         combo_priv.pack(fill="x", padx=20, pady=(0, 10))
         if edit_user: combo_priv.set(edit_user["priv_proto"])
         
-        # Priv Key
+        # Priv Key (Privacy Key)
         ctk.CTkLabel(dialog, text="Clé de Chiffrement (Privacy Key)").pack(anchor="w", padx=20)
         entry_priv_key = ctk.CTkEntry(dialog, show="*")
         entry_priv_key.pack(fill="x", padx=20, pady=(0, 20))
@@ -6010,7 +5924,7 @@ class DialogueUtilisateursSNMP(ctk.CTkToplevel):
             priv_p = combo_priv.get()
             priv_k = entry_priv_key.get()
             
-            # Validation sommaire
+            
             if auth_p != "Aucun" and not auth_k:
                 messagebox.showerror("Erreur", "Clé d'authentification requise")
                 return
@@ -6029,7 +5943,7 @@ def run_with_auth():
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("dark-blue")
     
-    # Variable pour stocker les données utilisateur
+    
     user_data_result = [None]
     app_closed_by_logout = [False]
     
@@ -6050,7 +5964,7 @@ def run_with_auth():
         auth = get_auth_manager()
         login_success = [False]
         
-        # Interface de login
+        # Interface de login pour les users
         # Logo
         ctk.CTkLabel(login_root, text="MiBombo",
                     font=ctk.CTkFont(size=28, weight="bold"),
@@ -6064,7 +5978,7 @@ def run_with_auth():
                     font=ctk.CTkFont(size=11),
                     text_color=THEME["text_muted"]).pack(pady=(10, 25))
         
-        # Formulaire
+        # Formulaire de connexion
         form_frame = ctk.CTkFrame(login_root, fg_color=THEME["bg_card"], corner_radius=12)
         form_frame.pack(padx=40, fill="x")
         
@@ -6113,10 +6027,10 @@ def run_with_auth():
                                  font=ctk.CTkFont(size=13, weight="bold"))
         login_btn.pack(fill="x", padx=20, pady=(5, 20))
         
-        # Bind Enter
+        # Bind Enter qui veut dire que quand on appuie sur la touche Enter, on appelle la fonction do_login
         login_root.bind("<Return>", lambda e: do_login())
         
-        # Lien mot de passe oublié
+        # Lien mot de passe oublié pour changer le mdp plus implémenter
         def show_password_request():
             """Affiche le formulaire de demande de réinitialisation."""
             # Créer une nouvelle fenêtre
@@ -6135,7 +6049,7 @@ def run_with_auth():
             request_window.transient(login_root)
             request_window.grab_set()
             
-            # Contenu principal
+            # Contenu principal de la fenetre de demande de reinitialisation
             main_frame = ctk.CTkFrame(request_window, fg_color="transparent")
             main_frame.pack(fill="both", expand=True, padx=25, pady=20)
             
@@ -6147,7 +6061,7 @@ def run_with_auth():
                         font=ctk.CTkFont(size=11),
                         text_color=THEME["text_muted"]).pack(pady=(0, 15))
             
-            # Formulaire
+            # Formulaire de demande de reinitialisation
             ctk.CTkLabel(main_frame, text="Votre identifiant",
                         font=ctk.CTkFont(size=12),
                         text_color=THEME["text_secondary"]).pack(anchor="w")
@@ -6156,7 +6070,7 @@ def run_with_auth():
                                        font=ctk.CTkFont(size=12))
             req_username.pack(fill="x", pady=(3, 12))
             
-            # Pré-remplir si un nom est déjà saisi
+       
             current_username = username_entry.get().strip()
             if current_username:
                 req_username.insert(0, current_username)
@@ -6181,7 +6095,7 @@ def run_with_auth():
                     status_label.configure(text="Identifiant requis", text_color=THEME["error"])
                     return
                 
-                # Créer le ticket
+                # Créer le ticket pas encore 100 pourcent au point 
                 success, msg, ticket_id = auth.create_ticket(
                     username=uname,
                     ticket_type="password_reset",
@@ -6212,7 +6126,7 @@ def run_with_auth():
                          font=ctk.CTkFont(size=12),
                          command=submit_request).pack(side="right")
         
-        # Bouton mot de passe oublié
+        # Bouton mot de passe oublié pareil
         forgot_btn = ctk.CTkButton(login_root, text="Mot de passe oublie ?",
                                   command=show_password_request,
                                   fg_color="transparent",
@@ -6222,15 +6136,15 @@ def run_with_auth():
                                   height=30)
         forgot_btn.pack(pady=(10, 5))
         
-        # Info
+        # Informations sur les identifiants par defaut
         ctk.CTkLabel(login_root, text="Identifiants par defaut: admin / admin",
                     font=ctk.CTkFont(size=10),
                     text_color=THEME["text_muted"]).pack(pady=10)
         
-        # Focus
+        # Focus sur le champ username_entry
         username_entry.focus()
         
-        # Fermeture = quitter
+
         def on_close():
             login_root.quit()
             login_root.destroy()
@@ -6241,29 +6155,23 @@ def run_with_auth():
         
         return login_success[0]
     
-    # Boucle principale
+    # Boucle principale de l'application
     while True:
-        # Afficher le login
         if not show_login():
-            # Login annulé, quitter
             break
         
         if user_data_result[0] is None:
             break
         
-        # Login réussi, lancer l'application
         try:
             app = ApplicationMiBombo()
             app.set_authenticated_user(user_data_result[0])
             app.mainloop()
             
-            # Vérifier si déconnexion
             if hasattr(app, '_is_authenticated') and not app._is_authenticated:
-                # Déconnexion, relancer le login
                 user_data_result[0] = None
                 continue
             else:
-                # Fermeture normale
                 break
         except Exception as e:
             print(f"Erreur application: {e}")
@@ -6288,14 +6196,12 @@ def main():
             user_data[0] = user
         
         while True:
-            # Lancer le login sécurisé
             user = run_secure_login(on_success=on_login_success)
             
             if not user:
                 print("[*] Connexion annulée")
                 break
             
-            # Lancer l'application
             try:
                 print(f"[+] Utilisateur {user} maintenant connecté")
                 app = ApplicationMiBombo()
@@ -6305,7 +6211,7 @@ def main():
                     "id": user.get("id"),
                     "username": user.get("username", "user"),
                     "email": user.get("email", ""),
-                    "full_name": user.get("username", "Utilisateur"),  # Utiliser username comme nom
+                    "full_name": user.get("username", "Utilisateur"),
                     "role": user.get("role", "user"),
                     "permissions": user.get("permissions", []),
                 }
@@ -6314,7 +6220,6 @@ def main():
                 app.set_authenticated_user(adapted_user)
                 app.mainloop()
                 
-                # Vérifier si déconnexion
                 if hasattr(app, '_is_authenticated') and not app._is_authenticated:
                     user_data[0] = None
                     continue
@@ -6326,7 +6231,7 @@ def main():
                 traceback.print_exc()
                 break
     
-    # Fallback vers l'ancien système
+    # Fallback vers l'ancien système afinb de debug le nouveau système sécurisé 
     elif get_auth_manager:
         print("[!] UUtilisaation de l'ancien auth pour debug")
         print("[!] Créer compter indispo")
